@@ -12,7 +12,8 @@
         "lint:check": "eslint src tests",
         "test": "vitest run",
         "test:watch": "vitest",
-        "test:coverage": "vitest run --coverage"
+        "test:coverage": "vitest run --coverage",
+        "prepare": "husky"
     },
     "keywords": [
         "quran",
@@ -48,6 +49,7 @@
         "eslint-config-prettier": "^10.1.8",
         "eslint-plugin-prettier": "^5.5.6",
         "eslint-plugin-simple-header": "^1.2.2",
+        "husky": "^9.1.7",
         "prettier": "^3.9.0",
         "supertest": "^7.2.2",
         "ts-node": "^10.9.2",
