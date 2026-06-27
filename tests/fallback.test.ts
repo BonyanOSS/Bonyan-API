@@ -4,8 +4,15 @@
  * MIT License
  */
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import { runWithFallback, fetchWithTimeout } from '../src/utils/fallback';
+
+const originalFetch = globalThis.fetch;
+
+afterEach(() => {
+    globalThis.fetch = originalFetch;
+    vi.restoreAllMocks();
+});
 
 describe('runWithFallback', () => {
     it('returns result from the first successful API', async () => {
@@ -35,7 +42,6 @@ describe('runWithFallback', () => {
 
 describe('fetchWithTimeout', () => {
     it('aborts when the request exceeds the timeout', async () => {
-        const original = globalThis.fetch;
         globalThis.fetch = vi.fn(
             (_input: string | URL | Request, init?: RequestInit) =>
                 new Promise<Response>((_, reject) => {
@@ -44,6 +50,5 @@ describe('fetchWithTimeout', () => {
         ) as typeof globalThis.fetch;
 
         await expect(fetchWithTimeout('https://example.com', {}, 50)).rejects.toThrow();
-        globalThis.fetch = original;
     });
 });

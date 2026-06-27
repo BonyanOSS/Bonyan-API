@@ -4,9 +4,18 @@
  * MIT License
  */
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import type { ReciterItem } from '../src/types/Items';
 import { getRadioContent, fetchWithFallback } from '../src/modules/reciters/reciters.service';
+import { clearCache } from '../src/utils/cache';
+
+const originalFetch = globalThis.fetch;
+
+afterEach(() => {
+    globalThis.fetch = originalFetch;
+    clearCache();
+    vi.restoreAllMocks();
+});
 
 describe('Reciters Service', () => {
     it('fetchWithFallback returns first successful API result', async () => {

@@ -4,9 +4,18 @@
  * MIT License
  */
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import type { SurahWithAyaItem } from '../src/types/Items';
 import { getAyatContent, fetchWithFallback } from '../src/modules/ayat/ayat.service';
+import { clearCache } from '../src/utils/cache';
+
+const originalFetch = globalThis.fetch;
+
+afterEach(() => {
+    globalThis.fetch = originalFetch;
+    clearCache();
+    vi.restoreAllMocks();
+});
 
 describe('Ayat Service', () => {
     it('fetchWithFallback returns first successful API result', async () => {
