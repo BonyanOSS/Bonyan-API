@@ -4,10 +4,20 @@
  * MIT License
  */
 
-import { httpServerHandler } from 'cloudflare:node';
-import { buildApp } from './app.js';
+import { Container, getContainer } from '@cloudflare/containers';
+import type { DurableObjectNamespace } from '@cloudflare/workers-types';
 
-const app = await buildApp({ logger: false });
-await app.ready();
+export class BonyanApiContainer extends Container {
+    defaultPort = 3000;
+    sleepAfter = '10m';
+}
 
-export default httpServerHandler(app.server);
+interface Env {
+    BONYAN_API: DurableObjectNamespace;
+}
+
+export default {
+    fetch(request: Request, env: Env) {
+        return getContainer(env.BONYAN_API).fetch(request);
+    },
+};

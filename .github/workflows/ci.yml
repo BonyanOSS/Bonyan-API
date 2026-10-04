@@ -36,6 +36,9 @@ jobs:
             - name: Run TypeScript build
               run: pnpm build
 
+            - name: Validate Cloudflare Worker and container configuration
+              run: pnpm cloudflare:check
+
             - name: Run Vitest tests with coverage
               run: pnpm test:coverage
 

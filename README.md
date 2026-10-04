@@ -27,14 +27,16 @@ The default address is `http://localhost:3000`. Configuration names are listed i
 
 ### Cloudflare Workers
 
-This is an API Worker, not a static Pages site. The repository includes `wrangler.toml` and a `src/worker.ts` entrypoint. In Cloudflare's project settings use:
+This is a Fastify API deployed through a Cloudflare Container, not a static Pages site and not a Fastify process inside the Workers runtime. The repository includes `wrangler.toml`, `src/worker.ts` and the existing `DOCKERFILE`. In Cloudflare Workers Builds use:
 
 ```text
 Build command: pnpm run build
 Deploy command: pnpm run deploy:cloudflare
 ```
 
-Set production variables and secrets in the Worker settings. Do not upload `.env`. The Worker uses Node.js compatibility for Fastify's HTTP server; Cloudflare documents this integration through `httpServerHandler`. For a local deployment, run `pnpm build` before `pnpm deploy:cloudflare`.
+Set production variables and secrets in the Worker and container settings. Do not upload `.env`. Cloudflare Containers require a Workers Paid plan and build the existing Docker image. For a local deployment, run `pnpm build` before `pnpm deploy:cloudflare`; local container development requires Docker.
+
+Use `pnpm run deploy:cloudflare` in the dashboard. The repository script pins the local Wrangler binary and explicitly selects `wrangler.toml`. Do not use the old static Pages deployment command.
 
 ## API
 

@@ -1,4 +1,17 @@
 name = "bonyan-api"
 main = "dist/worker.js"
 compatibility_date = "2026-10-04"
-compatibility_flags = ["nodejs_compat", "enable_nodejs_http_server_modules"]
+compatibility_flags = ["nodejs_compat"]
+
+[[containers]]
+class_name = "BonyanApiContainer"
+image = "./DOCKERFILE"
+max_instances = 3
+
+[[durable_objects.bindings]]
+name = "BONYAN_API"
+class_name = "BonyanApiContainer"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["BonyanApiContainer"]
