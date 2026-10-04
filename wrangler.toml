@@ -5,7 +5,7 @@ compatibility_flags = ["nodejs_compat"]
 
 [[containers]]
 class_name = "BonyanApiContainer"
-image = "./DOCKERFILE"
+image = "./Dockerfile"
 max_instances = 3
 
 [[durable_objects.bindings]]

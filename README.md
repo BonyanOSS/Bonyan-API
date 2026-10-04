@@ -19,7 +19,7 @@ Copy `.env.example` only when creating a new configuration. Keep an existing `.e
 ```sh
 pnpm build
 pnpm start
-docker build -f DOCKERFILE -t bonyan-api .
+docker build -f Dockerfile -t bonyan-api .
 docker run --rm -p 3000:3000 --env-file .env bonyan-api
 ```
 
@@ -27,7 +27,7 @@ The default address is `http://localhost:3000`. Configuration names are listed i
 
 ### Cloudflare Workers
 
-This is a Fastify API deployed through a Cloudflare Container, not a static Pages site and not a Fastify process inside the Workers runtime. The repository includes `wrangler.toml`, `src/worker.ts` and the existing `DOCKERFILE`. In Cloudflare Workers Builds use:
+This is a Fastify API deployed through a Cloudflare Container, not a static Pages site and not a Fastify process inside the Workers runtime. The repository includes `wrangler.toml`, `src/worker.ts` and the existing `Dockerfile`. In Cloudflare Workers Builds use:
 
 ```text
 Build command: pnpm run build
