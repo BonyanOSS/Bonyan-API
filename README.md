@@ -38,6 +38,8 @@ Deploy command: pnpm run deploy:cloudflare
 
 Set production variables and secrets in the Worker settings. Do not upload `.env`. Local development uses `pnpm exec wrangler dev`; deployment uses `pnpm deploy:cloudflare`.
 
+The production custom domain is `api.bonyanoss.org`. Branch builds run `npx wrangler preview` using the empty `previews` configuration. Enable Preview URLs on the existing Worker before testing a branch, then test its URL before merging. `workers_dev = false` keeps production traffic on the custom domain; `preview_urls = true` preserves access to test deployments.
+
 CI validates every documented response against OpenAPI for both HTTP adapters, starts the Worker in workerd and requests its health, readiness, routing and CORS endpoints. The Docker smoke test verifies the optional Node.js deployment separately. Worker initialization performs no asynchronous I/O and does not import Fastify.
 
 The `v2` Durable Object migration retires the unused class from the earlier Container deployment. Keep the migration history when updating an existing Worker. Roll back code by redeploying the previous native Worker revision; restoring the Container version would require the paid plan and a new class migration.

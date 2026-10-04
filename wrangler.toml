@@ -2,6 +2,8 @@ name = "bonyan-api"
 main = "src/worker.ts"
 compatibility_date = "2026-10-04"
 compatibility_flags = ["nodejs_compat"]
+workers_dev = false
+preview_urls = true
 
 [[routes]]
 pattern = "api.bonyanoss.org"
