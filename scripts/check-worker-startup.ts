@@ -54,6 +54,7 @@ try {
         for (const path of [
             '/surah/1',
             '/reciters/123',
+            '/reciters/123/surah/1',
             '/ayat/1/aya/1',
             '/ayat',
             '/azkar',

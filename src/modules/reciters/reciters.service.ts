@@ -77,7 +77,7 @@ export function buildReciterAudioApis(reciter: ReciterItem, surah: number, mosha
     const apis: (() => Promise<ReciterAudio>)[] = [
         async () => {
             const audio = audioUrl(new URL(String(surah).padStart(3, '0') + '.mp3', recording.server).toString(), 'mp3quran.net');
-            const response = await fetchWithTimeout(audio, { method: 'HEAD', redirect: 'error' });
+            const response = await fetchWithTimeout(audio, { method: 'HEAD', redirect: 'manual' });
             if (!response.ok || !/^(audio\/|application\/octet-stream)/i.test(response.headers.get('content-type') ?? ''))
                 throw new Error('Audio file unavailable');
             return { reciter: reciter.name, surah, audio, moshafId: recording.id, rewayaId: recording.rewayaId, apiName: 'mp3quran.net' };
@@ -92,7 +92,7 @@ export function buildReciterAudioApis(reciter: ReciterItem, surah: number, mosha
             );
             if (json.audio_file.chapter_id !== surah) throw new Error('Wrong audio chapter');
             const audio = audioUrl(json.audio_file.audio_url, 'quranicaudio.com');
-            const response = await fetchWithTimeout(audio, { method: 'HEAD', redirect: 'error' });
+            const response = await fetchWithTimeout(audio, { method: 'HEAD', redirect: 'manual' });
             if (!response.ok || !/^(audio\/|application\/octet-stream)/i.test(response.headers.get('content-type') ?? ''))
                 throw new Error('Fallback audio file unavailable');
             return { reciter: reciter.name, surah, audio, moshafId: recording.id, rewayaId: recording.rewayaId, apiName: 'quran.com' };

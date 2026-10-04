@@ -9,7 +9,7 @@ import { clearCache } from '../src/utils/cache';
 import { fetchJson, runWithFallback } from '../src/utils/fallback';
 import { surahApis } from '../src/modules/surah/surah.service';
 import { ayatApis, getAyatContent } from '../src/modules/ayat/ayat.service';
-import { reciterApis, resolveReciterAudio } from '../src/modules/reciters/reciters.service';
+import { reciterApis, resolveReciterAudio, buildReciterAudioApis } from '../src/modules/reciters/reciters.service';
 import { buildTafsirApis, isSupportedEdition } from '../src/modules/tafsir/tafsir.service';
 import { buildHadithApis, getRandomHadithItem } from '../src/modules/hadith/hadith.service';
 import { buildApis } from '../src/modules/prayer/prayer.service';
@@ -113,6 +113,21 @@ describe('Upstream contracts and failover', () => {
         vi.mocked(fetch).mockRejectedValue(new Error('offline'));
         await expect(resolveReciterAudio(reciter, 12, 124)).rejects.toThrow('offline');
         expect(vi.mocked(fetch)).toHaveBeenCalledTimes(1);
+    });
+
+    it('rejects audio redirects without following an unapproved host in either adapter', async () => {
+        const reciter = (await reciterApis[1]!()).find((r) => r.id === 123)!;
+        const apis = buildReciterAudioApis(reciter, 1);
+        vi.mocked(fetch).mockImplementation(async (_input, init) => {
+            if (init?.method === 'HEAD') {
+                expect(init.redirect).toBe('manual');
+                return new Response(null, { status: 302, headers: { location: 'https://unapproved.example/audio.mp3' } });
+            }
+            return response({ audio_file: { chapter_id: 1, audio_url: 'https://download.quranicaudio.com/test.mp3' } });
+        });
+        await expect(apis[0]!()).rejects.toThrow('Audio file unavailable');
+        await expect(apis[1]!()).rejects.toThrow('Fallback audio file unavailable');
+        expect(fetch).toHaveBeenCalledTimes(3);
     });
 
     it('converts QuranEnc string references and keeps the requested edition name', async () => {
