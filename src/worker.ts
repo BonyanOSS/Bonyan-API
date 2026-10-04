@@ -4,12 +4,38 @@
  * MIT License
  */
 
-import { Container, getContainer } from '@cloudflare/containers';
-import type { DurableObjectNamespace } from '@cloudflare/workers-types';
+import { DurableObject } from 'cloudflare:workers';
 
-export class BonyanApiContainer extends Container {
-    defaultPort = 3000;
-    sleepAfter = '10m';
+const CONTAINER_PORT = 3000;
+const INACTIVITY_TIMEOUT_MS = 10 * 60 * 1000;
+
+export class BonyanApiContainer extends DurableObject {
+    private startPromise?: Promise<void>;
+
+    private async ensureContainerRunning(): Promise<void> {
+        const container = this.ctx.container;
+        if (!container) {
+            throw new Error('BonyanApiContainer is missing its container binding');
+        }
+
+        if (container.running) {
+            return;
+        }
+
+        this.startPromise ??= (async () => {
+            container.start();
+            await container.setInactivityTimeout(INACTIVITY_TIMEOUT_MS);
+        })().finally(() => {
+            this.startPromise = undefined;
+        });
+
+        await this.startPromise;
+    }
+
+    async fetch(request: Request) {
+        await this.ensureContainerRunning();
+        return this.ctx.container!.getTcpPort(CONTAINER_PORT).fetch(request);
+    }
 }
 
 interface Env {
@@ -18,6 +44,7 @@ interface Env {
 
 export default {
     async fetch(request: Request, env: Env) {
-        return getContainer(env.BONYAN_API).fetch(request);
+        const id = env.BONYAN_API.idFromName('default');
+        return env.BONYAN_API.get(id).fetch(request);
     },
 };

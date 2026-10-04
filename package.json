@@ -36,7 +36,6 @@
     "license": "MIT",
     "packageManager": "pnpm@10.33.4",
     "dependencies": {
-        "@cloudflare/containers": "0.3.7",
         "@fastify/cors": "^11.2.0",
         "@fastify/rate-limit": "^11.0.0",
         "adhan": "^4.4.6",
