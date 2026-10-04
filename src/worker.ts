@@ -17,7 +17,7 @@ interface Env {
 }
 
 export default {
-    fetch(request: Request, env: Env) {
+    async fetch(request: Request, env: Env) {
         return getContainer(env.BONYAN_API).fetch(request);
     },
 };
