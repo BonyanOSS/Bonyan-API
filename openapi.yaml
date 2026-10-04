@@ -1268,7 +1268,7 @@ components:
                 apiName:
                     type: string
                     enum:
-                        - hisnmuslim.com
+                        - raw.githubusercontent.com/rn0x/hisn_almuslim_json
                         - cdn.jsdelivr.net/rn0x/hisn_almuslim_json
         AzkarSummary:
             type: object
@@ -1287,7 +1287,7 @@ components:
                 apiName:
                     type: string
                     enum:
-                        - hisnmuslim.com
+                        - raw.githubusercontent.com/rn0x/hisn_almuslim_json
                         - cdn.jsdelivr.net/rn0x/hisn_almuslim_json
         AzkarResult:
             type: object
@@ -1305,7 +1305,7 @@ components:
                 apiName:
                     type: string
                     enum:
-                        - hisnmuslim.com
+                        - raw.githubusercontent.com/rn0x/hisn_almuslim_json
                         - cdn.jsdelivr.net/rn0x/hisn_almuslim_json
         HadithBook:
             type: object

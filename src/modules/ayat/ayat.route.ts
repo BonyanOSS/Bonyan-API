@@ -4,15 +4,15 @@
  * MIT License
  */
 
-import { FastifyInstance } from 'fastify';
+import { type RouteRegistrar } from '../../http/types.js';
 import { getAllAyat, getAyatById, getAyatBySurah, getAyatByText } from './ayat.controller.js';
 
-export default async function ayatRoutes(fastify: FastifyInstance) {
-    fastify.get('/ayat/search', getAyatByText);
+export default function ayatRoutes(router: RouteRegistrar) {
+    router.get('/ayat/search', getAyatByText);
 
-    fastify.get('/ayat', getAllAyat);
+    router.get('/ayat', getAllAyat);
 
-    fastify.get('/ayat/:surah/aya/:id', getAyatBySurah);
+    router.get('/ayat/:surah/aya/:id', getAyatBySurah);
 
-    fastify.get('/ayat/:id', getAyatById);
+    router.get('/ayat/:id', getAyatById);
 }

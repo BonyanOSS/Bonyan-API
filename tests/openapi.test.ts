@@ -9,6 +9,7 @@ import { parse } from 'yaml';
 import Ajv from 'ajv/dist/2020.js';
 import { beforeAll, afterAll, describe, expect, it, vi } from 'vitest';
 import { buildApp } from '../src/app';
+import { createWorkerApp } from '../src/http/worker-app';
 import { clearCache } from '../src/utils/cache';
 import { SURAH_METADATA } from '../src/modules/surah/surah.metadata';
 import { AZKAR_CATEGORIES } from '../src/modules/azkar/azkar.metadata';
@@ -47,8 +48,24 @@ function validateResponse(path: string, status: number, body: unknown): void {
     expect(validate(body), JSON.stringify(validate.errors)).toBe(true);
 }
 
-describe('OpenAPI response contracts', () => {
-    let app: Awaited<ReturnType<typeof buildApp>>;
+async function contractApp(adapter: string) {
+    if (adapter === 'node') return buildApp({ logger: false });
+    const worker = createWorkerApp();
+    return {
+        async inject(url: string) {
+            const response = await worker.fetch(new Request('https://api.example' + url), {
+                RATE_LIMIT_MAX: process.env.RATE_LIMIT_MAX ?? '1000',
+            });
+            const body = await response.text();
+            return { statusCode: response.status, body, headers: Object.fromEntries(response.headers), json: () => JSON.parse(body) };
+        },
+        async ready() {},
+        async close() {},
+    };
+}
+
+describe.each(['node', 'worker'])('OpenAPI response contracts (%s)', (adapter) => {
+    let app: Awaited<ReturnType<typeof contractApp>>;
     beforeAll(async () => {
         clearCache();
         vi.mocked(fetch).mockImplementation(async (input, init) => {
@@ -120,7 +137,7 @@ describe('OpenAPI response contracts', () => {
             if (url.pathname.includes('/qibla/')) return json({ data: { latitude: 24.7136, longitude: 46.6753, direction: 243.8 } });
             throw new Error('Unexpected fixture request: ' + url.hostname + url.pathname);
         });
-        app = await buildApp({ logger: false });
+        app = await contractApp(adapter);
         await app.ready();
     });
     afterAll(async () => {
@@ -230,7 +247,7 @@ describe('OpenAPI response contracts', () => {
 
     it('returns the same error contract for rate-limited requests', async () => {
         vi.stubEnv('RATE_LIMIT_MAX', '1');
-        const limited = await buildApp({ logger: false });
+        const limited = await contractApp(adapter);
         try {
             await limited.inject('/health');
             const response = await limited.inject('/health');

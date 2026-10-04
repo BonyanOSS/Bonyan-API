@@ -7,7 +7,7 @@
 export type SurahApiSource = 'mp3quran.net' | 'alquran.cloud' | 'quran.com' | 'local';
 export type ReciterApiSource = 'mp3quran.net' | 'local';
 export type AyatApiSource = 'alquran.cloud' | 'cdn.jsdelivr.net/fawazahmed0/quran-api' | 'quran.com';
-export type AzkarApiSource = 'hisnmuslim.com' | 'cdn.jsdelivr.net/rn0x/hisn_almuslim_json';
+export type AzkarApiSource = 'raw.githubusercontent.com/rn0x/hisn_almuslim_json' | 'cdn.jsdelivr.net/rn0x/hisn_almuslim_json';
 export type TafsirApiSource = 'alquran.cloud' | 'quranenc.com' | 'quran.com' | 'cdn.jsdelivr.net/spa5k/tafsir_api';
 export type HadithApiSource = 'cdn.jsdelivr.net/gadingnst/hadith-api' | 'raw.githubusercontent.com/gadingnst/hadith-api' | 'local';
 export type PrayerApiSource = 'aladhan.com' | 'local';

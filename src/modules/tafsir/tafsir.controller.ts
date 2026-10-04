@@ -4,19 +4,19 @@
  * MIT License
  */
 
-import { FastifyReply, FastifyRequest } from 'fastify';
+import { type HttpReply, type HttpRequest } from '../../http/types.js';
 import { getTafsir, isSupportedEdition, listEditions } from './tafsir.service.js';
 import { fail, ok, unavailable } from '../../utils/http.js';
 import { parseInteger } from '../../utils/validation.js';
 import { SURAH_METADATA } from '../surah/surah.metadata.js';
 
-export async function getTafsirEditions(_req: FastifyRequest, reply: FastifyReply) {
+export async function getTafsirEditions(_req: HttpRequest, reply: HttpReply) {
     return ok(reply, listEditions());
 }
 
 export async function getTafsirForSurah(
-    req: FastifyRequest<{ Params: { edition: string; surah: string }; Querystring: { aya?: string } }>,
-    reply: FastifyReply,
+    req: HttpRequest<{ Params: { edition: string; surah: string }; Querystring: { aya?: string } }>,
+    reply: HttpReply,
 ) {
     const { edition, surah } = req.params;
     if (!isSupportedEdition(edition)) return fail(reply, 400, 'Unsupported tafsir edition');
@@ -42,7 +42,7 @@ export async function getTafsirForSurah(
     }
 }
 
-export async function getTafsirForAya(req: FastifyRequest<{ Params: { edition: string; surah: string; aya: string } }>, reply: FastifyReply) {
+export async function getTafsirForAya(req: HttpRequest<{ Params: { edition: string; surah: string; aya: string } }>, reply: HttpReply) {
     const { edition, surah, aya } = req.params;
     if (!isSupportedEdition(edition)) return fail(reply, 400, 'Unsupported tafsir edition');
 

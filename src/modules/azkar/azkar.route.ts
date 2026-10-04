@@ -4,12 +4,12 @@
  * MIT License
  */
 
-import { FastifyInstance } from 'fastify';
+import { type RouteRegistrar } from '../../http/types.js';
 import { getAzkarByCategory, getAzkarCategories, getRandomZekr, searchAzkar } from './azkar.controller.js';
 
-export default async function azkarRoutes(fastify: FastifyInstance) {
-    fastify.get('/azkar', getAzkarCategories);
-    fastify.get('/azkar/random', getRandomZekr);
-    fastify.get('/azkar/search', searchAzkar);
-    fastify.get('/azkar/:category', getAzkarByCategory);
+export default function azkarRoutes(router: RouteRegistrar) {
+    router.get('/azkar', getAzkarCategories);
+    router.get('/azkar/random', getRandomZekr);
+    router.get('/azkar/search', searchAzkar);
+    router.get('/azkar/:category', getAzkarByCategory);
 }

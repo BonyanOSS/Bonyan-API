@@ -4,7 +4,7 @@
  * MIT License
  */
 
-import { FastifyReply, FastifyRequest } from 'fastify';
+import { type HttpReply, type HttpRequest } from '../../http/types.js';
 import { getPrayerTimes, isSupportedMethod } from './prayer.service.js';
 import { parseInteger, validGregorianDate } from '../../utils/validation.js';
 import { fail, ok, unavailable } from '../../utils/http.js';
@@ -30,7 +30,7 @@ function parseFloatOpt(value: string | undefined): number | undefined {
     return Number.isFinite(num) ? num : NaN;
 }
 
-export async function getTimings(req: FastifyRequest<{ Querystring: PrayerQS }>, reply: FastifyReply) {
+export async function getTimings(req: HttpRequest<{ Querystring: PrayerQS }>, reply: HttpReply) {
     const date = req.query.date?.trim() || todayDDMMYYYY();
     if (!validGregorianDate(date)) return fail(reply, 400, 'Date must be a valid date in DD-MM-YYYY format');
 

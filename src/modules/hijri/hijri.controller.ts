@@ -4,7 +4,7 @@
  * MIT License
  */
 
-import { FastifyReply, FastifyRequest } from 'fastify';
+import { type HttpReply, type HttpRequest } from '../../http/types.js';
 import { gregorianToHijri, hijriToGregorian } from './hijri.service.js';
 import { fail, ok, unavailable } from '../../utils/http.js';
 import { validGregorianDate } from '../../utils/validation.js';
@@ -16,7 +16,7 @@ function todayDDMMYYYY(): string {
     return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
 }
 
-export async function convertGregorianToHijri(req: FastifyRequest<{ Querystring: { date?: string } }>, reply: FastifyReply) {
+export async function convertGregorianToHijri(req: HttpRequest<{ Querystring: { date?: string } }>, reply: HttpReply) {
     const date = req.query.date?.trim() || todayDDMMYYYY();
     if (!validGregorianDate(date)) return fail(reply, 400, 'Date must be a valid date in DD-MM-YYYY format');
 
@@ -27,7 +27,7 @@ export async function convertGregorianToHijri(req: FastifyRequest<{ Querystring:
     }
 }
 
-export async function convertHijriToGregorian(req: FastifyRequest<{ Querystring: { date?: string } }>, reply: FastifyReply) {
+export async function convertHijriToGregorian(req: HttpRequest<{ Querystring: { date?: string } }>, reply: HttpReply) {
     const date = req.query.date?.trim();
     if (!date) return fail(reply, 400, 'Query parameter "date" (DD-MM-YYYY) is required');
     if (!DATE_RE.test(date)) return fail(reply, 400, 'Date must be in DD-MM-YYYY format');
@@ -41,7 +41,7 @@ export async function convertHijriToGregorian(req: FastifyRequest<{ Querystring:
     }
 }
 
-export async function getToday(_req: FastifyRequest, reply: FastifyReply) {
+export async function getToday(_req: HttpRequest, reply: HttpReply) {
     try {
         return ok(reply, await gregorianToHijri(todayDDMMYYYY()));
     } catch (err) {

@@ -8,15 +8,7 @@ import Fastify, { type FastifyServerOptions } from 'fastify';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
 
-import recitersRoutes from './modules/reciters/reciters.route.js';
-import surahRoutes from './modules/surah/surah.route.js';
-import ayatRoutes from './modules/ayat/ayat.route.js';
-import azkarRoutes from './modules/azkar/azkar.route.js';
-import tafsirRoutes from './modules/tafsir/tafsir.route.js';
-import hadithRoutes from './modules/hadith/hadith.route.js';
-import prayerRoutes from './modules/prayer/prayer.route.js';
-import hijriRoutes from './modules/hijri/hijri.route.js';
-import qiblaRoutes from './modules/qibla/qibla.route.js';
+import { registerApiRoutes } from './http/routes.js';
 import { getCacheStats } from './utils/cache.js';
 import { fail } from './utils/http.js';
 import { renderMetrics } from './utils/metrics.js';
@@ -79,15 +71,7 @@ export async function buildApp(options: FastifyServerOptions = {}) {
         return fail(reply, 500, 'Internal server error', 'INTERNAL_SERVER_ERROR');
     });
 
-    await app.register(recitersRoutes);
-    await app.register(surahRoutes);
-    await app.register(ayatRoutes);
-    await app.register(azkarRoutes);
-    await app.register(tafsirRoutes);
-    await app.register(hadithRoutes);
-    await app.register(prayerRoutes);
-    await app.register(hijriRoutes);
-    await app.register(qiblaRoutes);
+    registerApiRoutes(app);
 
     return app;
 }

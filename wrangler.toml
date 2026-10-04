@@ -2,16 +2,19 @@ name = "bonyan-api"
 main = "src/worker.ts"
 compatibility_date = "2026-10-04"
 compatibility_flags = ["nodejs_compat"]
+workers_dev = false
+preview_urls = true
 
-[[containers]]
-class_name = "BonyanApiContainer"
-image = "./Dockerfile"
-max_instances = 3
+[[routes]]
+pattern = "api.bonyanoss.org"
+custom_domain = true
 
-[[durable_objects.bindings]]
-name = "BONYAN_API"
-class_name = "BonyanApiContainer"
+[previews]
 
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["BonyanApiContainer"]
+
+[[migrations]]
+tag = "v2"
+deleted_classes = ["BonyanApiContainer"]

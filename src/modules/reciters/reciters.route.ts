@@ -4,15 +4,15 @@
  * MIT License
  */
 
-import { FastifyInstance } from 'fastify';
+import { type RouteRegistrar } from '../../http/types.js';
 import { getRadio, getReciterById, getReciterByName, getReciterSurah } from './reciters.controller.js';
 
-export default async function radioRoutes(fastify: FastifyInstance) {
-    fastify.get('/reciters', getRadio);
+export default function radioRoutes(router: RouteRegistrar) {
+    router.get('/reciters', getRadio);
 
-    fastify.get('/reciters/:id', getReciterById);
+    router.get('/reciters/:id', getReciterById);
 
-    fastify.get('/reciters/search', getReciterByName);
+    router.get('/reciters/search', getReciterByName);
 
-    fastify.get('/reciters/:id/surah/:surah', getReciterSurah);
+    router.get('/reciters/:id/surah/:surah', getReciterSurah);
 }

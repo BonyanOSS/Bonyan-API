@@ -4,13 +4,13 @@
  * MIT License
  */
 
-import { FastifyReply, FastifyRequest } from 'fastify';
+import { type HttpReply, type HttpRequest } from '../../http/types.js';
 import { getRadioContent, resolveReciterAudio } from './reciters.service.js';
 import { parseInteger } from '../../utils/validation.js';
 import { normalizeArabic } from '../../utils/arabic.js';
 import { fail, ok, unavailable } from '../../utils/http.js';
 
-export async function getRadio(_req: FastifyRequest, reply: FastifyReply) {
+export async function getRadio(_req: HttpRequest, reply: HttpReply) {
     try {
         const data = await getRadioContent();
         return ok(reply, data);
@@ -19,7 +19,7 @@ export async function getRadio(_req: FastifyRequest, reply: FastifyReply) {
     }
 }
 
-export async function getReciterById(req: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
+export async function getReciterById(req: HttpRequest<{ Params: { id: string } }>, reply: HttpReply) {
     const id = parseInteger(req.params.id);
     if (Number.isNaN(id) || id < 1) return fail(reply, 400, 'Invalid reciter id');
 
@@ -34,8 +34,8 @@ export async function getReciterById(req: FastifyRequest<{ Params: { id: string 
 }
 
 export async function getReciterSurah(
-    req: FastifyRequest<{ Params: { id: string; surah: string }; Querystring: { moshaf?: string } }>,
-    reply: FastifyReply,
+    req: HttpRequest<{ Params: { id: string; surah: string }; Querystring: { moshaf?: string } }>,
+    reply: HttpReply,
 ) {
     const reciterId = parseInteger(req.params.id);
     const surahNum = parseInteger(req.params.surah);
@@ -60,7 +60,7 @@ export async function getReciterSurah(
     }
 }
 
-export async function getReciterByName(req: FastifyRequest<{ Querystring: { name?: string } }>, reply: FastifyReply) {
+export async function getReciterByName(req: HttpRequest<{ Querystring: { name?: string } }>, reply: HttpReply) {
     const name = req.query.name?.trim();
     if (!name) return fail(reply, 400, 'Query parameter "name" is required');
 

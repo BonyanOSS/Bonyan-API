@@ -4,7 +4,7 @@
  * MIT License
  */
 
-import { FastifyReply } from 'fastify';
+import { type HttpReply } from '../http/types.js';
 
 export interface OkBody<T> {
     success: true;
@@ -23,11 +23,11 @@ export interface FailBody {
     };
 }
 
-export function ok<T>(reply: FastifyReply, data: T, status = 200): FastifyReply {
+export function ok<T>(reply: HttpReply, data: T, status = 200): HttpReply {
     return reply.status(status).send({ success: true, data } satisfies OkBody<T>);
 }
 
-export function fail(reply: FastifyReply, status: number, message: string, code = codeForStatus(status)): FastifyReply {
+export function fail(reply: HttpReply, status: number, message: string, code = codeForStatus(status)): HttpReply {
     return reply.status(status).send({
         success: false,
         message,
@@ -39,7 +39,7 @@ export function fail(reply: FastifyReply, status: number, message: string, code 
     } satisfies FailBody);
 }
 
-export function unavailable(reply: FastifyReply, err: unknown): FastifyReply {
+export function unavailable(reply: HttpReply, err: unknown): HttpReply {
     reply.log.warn({ err }, 'All upstream sources failed');
     return fail(reply, 503, 'All upstream sources are unavailable', 'ALL_SOURCES_FAILED');
 }

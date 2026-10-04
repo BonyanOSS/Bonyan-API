@@ -36,14 +36,14 @@ jobs:
             - name: Run TypeScript build
               run: pnpm build
 
-            - name: Validate Cloudflare Worker and container configuration
+            - name: Validate Cloudflare Worker configuration
               run: pnpm cloudflare:check
 
             - name: Start Worker in the Cloudflare runtime
               timeout-minutes: 2
               run: pnpm cloudflare:startup
 
-            - name: Build and smoke test the production container
+            - name: Build and smoke test the Node.js image
               timeout-minutes: 5
               run: |
                   docker build -t bonyan-api-ci .

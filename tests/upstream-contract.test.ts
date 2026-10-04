@@ -9,7 +9,7 @@ import { clearCache } from '../src/utils/cache';
 import { fetchJson, runWithFallback } from '../src/utils/fallback';
 import { surahApis } from '../src/modules/surah/surah.service';
 import { ayatApis, getAyatContent } from '../src/modules/ayat/ayat.service';
-import { reciterApis, resolveReciterAudio } from '../src/modules/reciters/reciters.service';
+import { reciterApis, resolveReciterAudio, buildReciterAudioApis } from '../src/modules/reciters/reciters.service';
 import { buildTafsirApis, isSupportedEdition } from '../src/modules/tafsir/tafsir.service';
 import { buildHadithApis, getRandomHadithItem } from '../src/modules/hadith/hadith.service';
 import { buildApis } from '../src/modules/prayer/prayer.service';
@@ -115,6 +115,21 @@ describe('Upstream contracts and failover', () => {
         expect(vi.mocked(fetch)).toHaveBeenCalledTimes(1);
     });
 
+    it('rejects audio redirects without following an unapproved host in either adapter', async () => {
+        const reciter = (await reciterApis[1]!()).find((r) => r.id === 123)!;
+        const apis = buildReciterAudioApis(reciter, 1);
+        vi.mocked(fetch).mockImplementation(async (_input, init) => {
+            if (init?.method === 'HEAD') {
+                expect(init.redirect).toBe('manual');
+                return new Response(null, { status: 302, headers: { location: 'https://unapproved.example/audio.mp3' } });
+            }
+            return response({ audio_file: { chapter_id: 1, audio_url: 'https://download.quranicaudio.com/test.mp3' } });
+        });
+        await expect(apis[0]!()).rejects.toThrow('Audio file unavailable');
+        await expect(apis[1]!()).rejects.toThrow('Fallback audio file unavailable');
+        expect(fetch).toHaveBeenCalledTimes(3);
+    });
+
     it('converts QuranEnc string references and keeps the requested edition name', async () => {
         vi.mocked(fetch).mockResolvedValue(
             response({ result: Array.from({ length: 7 }, (_, i) => ({ sura: '1', aya: String(i + 1), translation: 'تفسير اختبار' })) }),
@@ -151,15 +166,17 @@ describe('Upstream contracts and failover', () => {
         expect(categories.some((c) => c.category === 'أذكار الصباح والمساء')).toBe(true);
     });
 
-    it('follows Hisn category resources rather than treating the index as supplications', async () => {
+    it('fails over to the same pinned Hisn corpus within the Workers subrequest budget', async () => {
         vi.mocked(fetch).mockImplementation(async (input) => {
-            if (String(input).endsWith('husn_ar.json')) return response({ العربية: AZKAR_CATEGORIES.map((c) => ({ ID: c.id, TITLE: c.name })) });
-            return response({ category: [{ ID: 75, ARABIC_TEXT: 'ذكر اختبار', REPEAT: 3 }] });
+            if (String(input).includes('cdn.jsdelivr.net')) return new Response(null, { status: 503 });
+            return response(Object.fromEntries(AZKAR_CATEGORIES.map((c) => [c.mirrorName, { text: ['ذكر اختبار'] }])));
         });
-        const categories = await azkarApis[1]!();
+        const categories = await runWithFallback(azkarApis);
         expect(categories).toHaveLength(132);
-        expect(categories[0]?.items[0]).toEqual({ id: 1, text: 'ذكر اختبار', count: 3 });
-        expect(fetch).toHaveBeenCalledTimes(133);
+        expect(categories[0]?.items[0]).toEqual({ id: 1, text: 'ذكر اختبار' });
+        expect(categories.every((c) => c.apiName === 'raw.githubusercontent.com/rn0x/hisn_almuslim_json')).toBe(true);
+        expect(fetch).toHaveBeenCalledTimes(2);
+        expect(vi.mocked(fetch).mock.calls[1]?.[0]).toContain('0405ee1797c2ccadfe82cd41845338d54978ccb9');
     });
 
     it('uses pinned hadith arrays on the second host and chooses only existing numbers', async () => {
