@@ -8,6 +8,10 @@ import { FastifyReply, FastifyRequest } from 'fastify';
 import { getAzkarContent } from './azkar.service.js';
 import { normalizeArabic } from '../../utils/arabic.js';
 import { fail, ok, unavailable } from '../../utils/http.js';
+import { parseInteger } from '../../utils/validation.js';
+import type { AzkarItem, AzkarApiSource } from '../../types/Items.js';
+
+type AzkarResult = { category: string; item: AzkarItem; apiName: AzkarApiSource };
 
 export async function getAzkarCategories(_req: FastifyRequest, reply: FastifyReply) {
     try {
@@ -21,7 +25,7 @@ export async function getAzkarCategories(_req: FastifyRequest, reply: FastifyRep
 }
 
 export async function getAzkarByCategory(req: FastifyRequest<{ Params: { category: string } }>, reply: FastifyReply) {
-    const target = decodeURIComponent(req.params.category).trim();
+    const target = req.params.category.trim();
     if (!target) return fail(reply, 400, 'Category is required');
 
     try {
@@ -40,17 +44,18 @@ export async function searchAzkar(req: FastifyRequest<{ Querystring: { text?: st
     const text = req.query.text?.trim();
     if (!text) return fail(reply, 400, 'Query parameter "text" is required');
 
-    const limit = Math.min(Math.max(parseInt(req.query.limit ?? '50', 10) || 50, 1), 200);
+    const limit = parseInteger(req.query.limit ?? '50');
+    if (Number.isNaN(limit) || limit < 1 || limit > 200) return fail(reply, 400, 'limit must be an integer between 1 and 200');
 
     try {
         const data = await getAzkarContent();
         const search = normalizeArabic(text);
-        const results: { category: string; item: { id: number; text: string; count?: number } }[] = [];
+        const results: AzkarResult[] = [];
 
         for (const cat of data.categories) {
             for (const item of cat.items) {
                 if (normalizeArabic(item.text).includes(search)) {
-                    results.push({ category: cat.category, item });
+                    results.push({ category: cat.category, item, apiName: cat.apiName });
                     if (results.length >= limit) break;
                 }
             }
@@ -67,9 +72,9 @@ export async function searchAzkar(req: FastifyRequest<{ Querystring: { text?: st
 export async function getRandomZekr(_req: FastifyRequest, reply: FastifyReply) {
     try {
         const data = await getAzkarContent();
-        const allItems: { category: string; item: { id: number; text: string; count?: number } }[] = [];
+        const allItems: AzkarResult[] = [];
         for (const cat of data.categories) {
-            for (const item of cat.items) allItems.push({ category: cat.category, item });
+            for (const item of cat.items) allItems.push({ category: cat.category, item, apiName: cat.apiName });
         }
 
         if (allItems.length === 0) return fail(reply, 404, 'No azkar available');

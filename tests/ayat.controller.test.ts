@@ -7,6 +7,13 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import Fastify from 'fastify';
 import ayatRoutes from '../src/modules/ayat/ayat.route';
+import { vi } from 'vitest';
+
+vi.mock('../src/modules/ayat/ayat.service', () => ({
+    getAyatContent: vi.fn(async () => ({
+        surahs: [{ number: 1, name: 'الفاتحة', apiName: 'alquran.cloud', ayat: [{ number: 1, text: 'بسم الله الرحمن الرحيم', numberInSurah: 1 }] }],
+    })),
+}));
 
 describe('Ayat Controller', () => {
     const app = Fastify();

@@ -1,22 +1,17 @@
 # Roadmap
 
-## Near Term
+## Operations
 
-- Publish a stable public base URL and status page.
-- Keep `openapi.yaml` aligned with the implementation.
-- Add deterministic tests for every fallback chain.
-- Add request and upstream metrics to production monitoring.
-- Add SDK examples for TypeScript and Python.
+- Publish a public base URL and status page when hosting is configured.
+- Connect request/upstream metrics to production monitoring.
+- Define an audit schedule for pinned datasets and the reciter snapshot.
+- Add SDK examples that handle optional fields and report actual sources.
 
 ## Reliability
 
-- Add Redis or Keyv as an optional shared cache backend.
-- Add stale-if-error behavior for stable content.
-- Add provider health scoring and temporary circuit breaking.
-- Add response schema validation for upstream providers.
+- Review more audio mappings without changing narrator, narration or style.
+- Add a reviewed geocoder before enabling offline prayer for city-only requests.
+- Consider a shared cache and circuit breaking when deployment metrics justify them.
+- Compare complete tafsir/Quran corpora against reviewed reference editions beyond structural checks.
 
-## Community
-
-- Label beginner-friendly issues.
-- Publish contribution guides for adding a source, endpoint, or SDK example.
-- Add public sponsorship goals for hosting, monitoring, and maintenance.
+Source acceptance follows `SOURCES.md` and `CONTRIBUTING.md`.

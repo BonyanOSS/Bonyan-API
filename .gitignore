@@ -1,6 +1,8 @@
 # Node
 node_modules
 dist
+coverage/
+fallback-check.json
 .env
 .env.*.local
 test/

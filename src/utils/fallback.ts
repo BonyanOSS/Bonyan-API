@@ -13,6 +13,28 @@ export interface FallbackOptions {
     isEmpty?: (result: unknown) => boolean;
 }
 
+export async function fetchJson<T>(input: string, timeoutMs = 8000, signal?: AbortSignal): Promise<T> {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const startedAt = Date.now();
+    try {
+        const response = await fetch(input, {
+            signal: signal ? AbortSignal.any([controller.signal, signal]) : controller.signal,
+            headers: { Accept: 'application/json' },
+        });
+        if (!response.ok) throw new Error(`Upstream HTTP ${response.status}: ${new URL(input).hostname}`);
+        const data = await withTimeout(response.json() as Promise<T>, timeoutMs - (Date.now() - startedAt));
+        recordUpstreamRequest(input, 'ok', Date.now() - startedAt);
+        return data;
+    } catch (error) {
+        controller.abort();
+        recordUpstreamRequest(input, 'error', Date.now() - startedAt);
+        throw error;
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
 export async function fetchWithTimeout(input: string, init: RequestInit = {}, timeoutMs = 8000): Promise<Response> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -49,7 +71,7 @@ export async function runWithFallback<T>(apis: ApiFn<T>[], options: FallbackOpti
 
 function defaultIsEmpty(result: unknown): boolean {
     if (result === null || result === undefined) return true;
-    if (Array.isArray(result)) return result.length === 0;
+    if (Array.isArray(result)) return result.length === 0 || result.every(defaultIsEmpty);
     return false;
 }
 

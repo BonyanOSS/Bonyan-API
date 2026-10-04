@@ -4,57 +4,56 @@
  * MIT License
  */
 
-export type SurahApiSource = 'mp3quran.net' | 'alquran.cloud' | 'quran.com';
-export type ReciterApiSource = 'mp3quran.net' | 'quran.com';
-export type AyatApiSource = 'alquran.cloud' | 'cdn.jsdelivr.net/fawazahmed0/quran-api';
-export type AzkarApiSource = 'hisnmuslim.com' | 'github.com/nawafalqari';
-export type TafsirApiSource = 'alquran.cloud' | 'quranenc.com';
-export type HadithApiSource = 'hadith.gading.dev' | 'cdn.jsdelivr.net/sutanlab/hadith-api';
-export type PrayerApiSource = 'aladhan.com' | 'pray.zone';
-export type HijriApiSource = 'aladhan.com';
+export type SurahApiSource = 'mp3quran.net' | 'alquran.cloud' | 'quran.com' | 'local';
+export type ReciterApiSource = 'mp3quran.net' | 'local';
+export type AyatApiSource = 'alquran.cloud' | 'cdn.jsdelivr.net/fawazahmed0/quran-api' | 'quran.com';
+export type AzkarApiSource = 'hisnmuslim.com' | 'cdn.jsdelivr.net/rn0x/hisn_almuslim_json';
+export type TafsirApiSource = 'alquran.cloud' | 'quranenc.com' | 'quran.com' | 'cdn.jsdelivr.net/spa5k/tafsir_api';
+export type HadithApiSource = 'cdn.jsdelivr.net/gadingnst/hadith-api' | 'raw.githubusercontent.com/gadingnst/hadith-api' | 'local';
+export type PrayerApiSource = 'aladhan.com' | 'local';
+export type HijriApiSource = 'aladhan.com' | 'local';
 export type QiblaApiSource = 'aladhan.com' | 'local';
 
-/* ------------------ RecitersItem ------------------ */
-
+export interface MoshafItem {
+    id: number;
+    name: string;
+    server: string;
+    surahList: number[];
+    rewayaId: number;
+    type: number;
+}
 export interface ReciterItem {
     id: number;
     name: string;
     date?: string;
-    moshaf?: {
-        id: number;
-        name: string;
-        server: string;
-    }[];
-    style?: string | null;
+    moshaf: MoshafItem[];
     apiName: ReciterApiSource;
 }
-
-/* ------------------ SurahsItem ------------------ */
-
+export interface ReciterAudio {
+    reciter: string;
+    surah: number;
+    audio: string;
+    moshafId: number;
+    rewayaId: number;
+    apiName: 'mp3quran.net' | 'quran.com';
+}
 export interface SurahItem {
     id: number;
     name: string;
-    makkia?: boolean;
+    makkia: boolean;
     apiName: SurahApiSource;
 }
-
-/* ------------------ AyaItem ------------------ */
-
 export interface AyaItem {
     number: number;
     text: string;
     numberInSurah: number;
 }
-
 export interface SurahWithAyaItem {
     number: number;
     name: string;
     ayat: AyaItem[];
     apiName: AyatApiSource;
 }
-
-/* ------------------ Azkar ------------------ */
-
 export interface AzkarItem {
     id: number;
     text: string;
@@ -63,15 +62,11 @@ export interface AzkarItem {
     description?: string;
     content?: string;
 }
-
 export interface AzkarCategory {
     category: string;
     items: AzkarItem[];
     apiName: AzkarApiSource;
 }
-
-/* ------------------ Tafsir ------------------ */
-
 export interface TafsirItem {
     surah: number;
     aya: number;
@@ -79,54 +74,38 @@ export interface TafsirItem {
     edition: string;
     apiName: TafsirApiSource;
 }
-
-/* ------------------ Hadith ------------------ */
-
 export interface HadithBook {
     id: string;
     name: string;
     available: number;
     apiName: HadithApiSource;
 }
-
 export interface HadithItem {
     number: number;
     text: string;
     book: string;
     apiName: HadithApiSource;
 }
-
-/* ------------------ Prayer Times ------------------ */
-
+export interface HadithRange {
+    book: string;
+    available: number;
+    hadiths: HadithItem[];
+}
 export interface PrayerTimings {
     date: string;
     hijri?: string;
-    timings: {
-        Fajr: string;
-        Sunrise?: string;
-        Dhuhr: string;
-        Asr: string;
-        Sunset?: string;
-        Maghrib: string;
-        Isha: string;
-        Imsak?: string;
-        Midnight?: string;
-    };
-    method?: string;
-    coordinates?: { latitude: number; longitude: number };
+    timezone: string;
+    timings: { Fajr: string; Sunrise: string; Dhuhr: string; Asr: string; Sunset: string; Maghrib: string; Isha: string };
+    method: string;
+    coordinates: { latitude: number; longitude: number };
     apiName: PrayerApiSource;
 }
-
-/* ------------------ Hijri ------------------ */
-
 export interface HijriDate {
     hijri: { date: string; day: string; month: string; monthAr: string; year: string; weekday: string; weekdayAr: string };
     gregorian: { date: string; day: string; month: string; year: string };
+    calendar: string;
     apiName: HijriApiSource;
 }
-
-/* ------------------ Qibla ------------------ */
-
 export interface QiblaInfo {
     latitude: number;
     longitude: number;

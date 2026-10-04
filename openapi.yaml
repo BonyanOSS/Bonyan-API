@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
     title: Bonyan-API
-    version: 2.0.0
+    version: 3.0.0
     summary: Multi-source fallback REST API for Islamic digital content.
     license:
         name: MIT
@@ -9,6 +9,10 @@ info:
     contact:
         name: BonyanOSS
         url: https://github.com/BonyanOSS/Bonyan-API
+    description:
+        Ordered, validated source adapters. Required fields are never null or placeholders. Missing optional metadata is omitted, never inferred.
+        Reciter IDs retain MP3Quran identity; equivalent audio is matched by narrator, narration and style. See SOURCES.md for source scope and
+        failover limits.
 servers:
     - url: http://localhost:3000
       description: Local development
@@ -26,48 +30,95 @@ tags:
 paths:
     /:
         get:
-            tags: [Meta]
+            tags:
+                - Meta
             summary: Route catalogue
             responses:
                 '200':
-                    description: OK
+                    description: Successful response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/RouteCatalogue'
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '500':
+                    $ref: '#/components/responses/InternalError'
+            operationId: getRouteCatalogue
     /health:
         get:
-            tags: [Meta]
+            tags:
+                - Meta
             summary: Liveness probe
             responses:
                 '200':
-                    description: OK
+                    description: Successful response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Health'
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '500':
+                    $ref: '#/components/responses/InternalError'
+            operationId: getHealth
     /ready:
         get:
-            tags: [Meta]
+            tags:
+                - Meta
             summary: Readiness probe with cache stats
             responses:
                 '200':
-                    description: OK
+                    description: Successful response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Ready'
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '500':
+                    $ref: '#/components/responses/InternalError'
+            operationId: getReadiness
     /metrics:
         get:
-            tags: [Meta]
+            tags:
+                - Meta
             summary: Prometheus metrics
             responses:
                 '200':
-                    description: Prometheus text metrics
+                    description: Prometheus metrics
                     content:
                         text/plain:
                             schema:
                                 type: string
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '500':
+                    $ref: '#/components/responses/InternalError'
+            operationId: getMetrics
     /surah:
         get:
-            tags: [Surah]
+            tags:
+                - Surah
             summary: List all surahs
             responses:
                 '200':
-                    $ref: '#/components/responses/Ok'
+                    description: Successful response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/SurahResponse'
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '500':
+                    $ref: '#/components/responses/InternalError'
                 '503':
                     $ref: '#/components/responses/Unavailable'
+            operationId: getSurah
     /surah/{id}:
         get:
-            tags: [Surah]
+            tags:
+                - Surah
             summary: Get a surah by id
             parameters:
                 - name: id
@@ -79,14 +130,26 @@ paths:
                       maximum: 114
             responses:
                 '200':
-                    $ref: '#/components/responses/Ok'
+                    description: Successful response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/SurahIdResponse'
                 '400':
                     $ref: '#/components/responses/BadRequest'
                 '404':
                     $ref: '#/components/responses/NotFound'
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '500':
+                    $ref: '#/components/responses/InternalError'
+                '503':
+                    $ref: '#/components/responses/Unavailable'
+            operationId: getSurahId
     /surah/search:
         get:
-            tags: [Surah]
+            tags:
+                - Surah
             summary: Search surah by name
             parameters:
                 - name: name
@@ -96,19 +159,45 @@ paths:
                       type: string
             responses:
                 '200':
-                    $ref: '#/components/responses/Ok'
+                    description: Successful response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/SurahSearchResponse'
                 '400':
                     $ref: '#/components/responses/BadRequest'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '500':
+                    $ref: '#/components/responses/InternalError'
+                '503':
+                    $ref: '#/components/responses/Unavailable'
+            operationId: getSurahSearch
     /ayat:
         get:
-            tags: [Ayat]
+            tags:
+                - Ayat
             summary: Get full Quran text
             responses:
                 '200':
-                    $ref: '#/components/responses/Ok'
+                    description: Successful response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/AyatResponse'
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '500':
+                    $ref: '#/components/responses/InternalError'
+                '503':
+                    $ref: '#/components/responses/Unavailable'
+            operationId: getAyat
     /ayat/{id}:
         get:
-            tags: [Ayat]
+            tags:
+                - Ayat
             summary: Get aya by absolute number
             parameters:
                 - name: id
@@ -120,12 +209,26 @@ paths:
                       maximum: 6236
             responses:
                 '200':
-                    $ref: '#/components/responses/Ok'
+                    description: Successful response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/AyatIdResponse'
                 '400':
                     $ref: '#/components/responses/BadRequest'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '500':
+                    $ref: '#/components/responses/InternalError'
+                '503':
+                    $ref: '#/components/responses/Unavailable'
+            operationId: getAyatId
     /ayat/{surah}/aya/{id}:
         get:
-            tags: [Ayat]
+            tags:
+                - Ayat
             summary: Get aya by surah and verse number
             parameters:
                 - $ref: '#/components/parameters/SurahId'
@@ -137,12 +240,26 @@ paths:
                       minimum: 1
             responses:
                 '200':
-                    $ref: '#/components/responses/Ok'
+                    description: Successful response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/AyatSurahAyaIdResponse'
                 '400':
                     $ref: '#/components/responses/BadRequest'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '500':
+                    $ref: '#/components/responses/InternalError'
+                '503':
+                    $ref: '#/components/responses/Unavailable'
+            operationId: getAyatSurahAyaId
     /ayat/search:
         get:
-            tags: [Ayat]
+            tags:
+                - Ayat
             summary: Search Quran text
             parameters:
                 - name: text
@@ -150,20 +267,54 @@ paths:
                   required: true
                   schema:
                       type: string
-                - $ref: '#/components/parameters/Limit'
+                - name: limit
+                  in: query
+                  schema:
+                      type: integer
+                      minimum: 1
+                      maximum: 500
+                      default: 50
             responses:
                 '200':
-                    $ref: '#/components/responses/Ok'
+                    description: Successful response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/AyatSearchResponse'
+                '400':
+                    $ref: '#/components/responses/BadRequest'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '500':
+                    $ref: '#/components/responses/InternalError'
+                '503':
+                    $ref: '#/components/responses/Unavailable'
+            operationId: getAyatSearch
     /reciters:
         get:
-            tags: [Reciters]
+            tags:
+                - Reciters
             summary: List reciters
             responses:
                 '200':
-                    $ref: '#/components/responses/Ok'
+                    description: Successful response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/RecitersResponse'
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '500':
+                    $ref: '#/components/responses/InternalError'
+                '503':
+                    $ref: '#/components/responses/Unavailable'
+            operationId: getReciters
     /reciters/{id}:
         get:
-            tags: [Reciters]
+            tags:
+                - Reciters
             summary: Get reciter by id
             parameters:
                 - name: id
@@ -171,14 +322,29 @@ paths:
                   required: true
                   schema:
                       type: integer
+                      minimum: 1
             responses:
                 '200':
-                    $ref: '#/components/responses/Ok'
+                    description: Successful response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/RecitersIdResponse'
+                '400':
+                    $ref: '#/components/responses/BadRequest'
                 '404':
                     $ref: '#/components/responses/NotFound'
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '500':
+                    $ref: '#/components/responses/InternalError'
+                '503':
+                    $ref: '#/components/responses/Unavailable'
+            operationId: getRecitersId
     /reciters/{id}/surah/{surah}:
         get:
-            tags: [Reciters]
+            tags:
+                - Reciters
             summary: Resolve audio URL
             parameters:
                 - name: id
@@ -186,13 +352,38 @@ paths:
                   required: true
                   schema:
                       type: integer
+                      minimum: 1
                 - $ref: '#/components/parameters/SurahId'
+                - name: moshaf
+                  in: query
+                  description:
+                      Select a listed recording ID. Defaults to a covering Hafs murattal recording, then another covering recording. Fallback preserves the
+                      selected narration and style.
+                  schema:
+                      type: integer
+                      minimum: 1
             responses:
                 '200':
-                    $ref: '#/components/responses/Ok'
+                    description: Successful response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/RecitersIdSurahSurahResponse'
+                '400':
+                    $ref: '#/components/responses/BadRequest'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '500':
+                    $ref: '#/components/responses/InternalError'
+                '503':
+                    $ref: '#/components/responses/Unavailable'
+            operationId: getRecitersIdSurahSurah
     /reciters/search:
         get:
-            tags: [Reciters]
+            tags:
+                - Reciters
             summary: Search reciters by name
             parameters:
                 - name: name
@@ -202,17 +393,43 @@ paths:
                       type: string
             responses:
                 '200':
-                    $ref: '#/components/responses/Ok'
+                    description: Successful response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/RecitersSearchResponse'
+                '400':
+                    $ref: '#/components/responses/BadRequest'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '500':
+                    $ref: '#/components/responses/InternalError'
+                '503':
+                    $ref: '#/components/responses/Unavailable'
+            operationId: getRecitersSearch
     /tafsir:
         get:
-            tags: [Tafsir]
+            tags:
+                - Tafsir
             summary: List supported tafsir editions
             responses:
                 '200':
-                    $ref: '#/components/responses/Ok'
+                    description: Successful response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/TafsirResponse'
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '500':
+                    $ref: '#/components/responses/InternalError'
+            operationId: getTafsir
     /tafsir/{edition}/{surah}:
         get:
-            tags: [Tafsir]
+            tags:
+                - Tafsir
             summary: Get tafsir for a surah
             parameters:
                 - $ref: '#/components/parameters/Edition'
@@ -224,10 +441,26 @@ paths:
                       minimum: 1
             responses:
                 '200':
-                    $ref: '#/components/responses/Ok'
+                    description: Successful response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/TafsirEditionSurahResponse'
+                '400':
+                    $ref: '#/components/responses/BadRequest'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '500':
+                    $ref: '#/components/responses/InternalError'
+                '503':
+                    $ref: '#/components/responses/Unavailable'
+            operationId: getTafsirEditionSurah
     /tafsir/{edition}/{surah}/{aya}:
         get:
-            tags: [Tafsir]
+            tags:
+                - Tafsir
             summary: Get tafsir for one aya
             parameters:
                 - $ref: '#/components/parameters/Edition'
@@ -240,24 +473,66 @@ paths:
                       minimum: 1
             responses:
                 '200':
-                    $ref: '#/components/responses/Ok'
+                    description: Successful response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/TafsirEditionSurahAyaResponse'
+                '400':
+                    $ref: '#/components/responses/BadRequest'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '500':
+                    $ref: '#/components/responses/InternalError'
+                '503':
+                    $ref: '#/components/responses/Unavailable'
+            operationId: getTafsirEditionSurahAya
     /azkar:
         get:
-            tags: [Azkar]
+            tags:
+                - Azkar
             summary: List azkar categories
             responses:
                 '200':
-                    $ref: '#/components/responses/Ok'
+                    description: Successful response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/AzkarResponse'
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '500':
+                    $ref: '#/components/responses/InternalError'
+                '503':
+                    $ref: '#/components/responses/Unavailable'
+            operationId: getAzkar
     /azkar/random:
         get:
-            tags: [Azkar]
+            tags:
+                - Azkar
             summary: Get random zekr
             responses:
                 '200':
-                    $ref: '#/components/responses/Ok'
+                    description: Successful response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/AzkarRandomResponse'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '500':
+                    $ref: '#/components/responses/InternalError'
+                '503':
+                    $ref: '#/components/responses/Unavailable'
+            operationId: getAzkarRandom
     /azkar/search:
         get:
-            tags: [Azkar]
+            tags:
+                - Azkar
             summary: Search azkar
             parameters:
                 - name: text
@@ -265,13 +540,35 @@ paths:
                   required: true
                   schema:
                       type: string
-                - $ref: '#/components/parameters/Limit'
+                - name: limit
+                  in: query
+                  schema:
+                      type: integer
+                      minimum: 1
+                      maximum: 200
+                      default: 50
             responses:
                 '200':
-                    $ref: '#/components/responses/Ok'
+                    description: Successful response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/AzkarSearchResponse'
+                '400':
+                    $ref: '#/components/responses/BadRequest'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '500':
+                    $ref: '#/components/responses/InternalError'
+                '503':
+                    $ref: '#/components/responses/Unavailable'
+            operationId: getAzkarSearch
     /azkar/{category}:
         get:
-            tags: [Azkar]
+            tags:
+                - Azkar
             summary: Get azkar category
             parameters:
                 - name: category
@@ -281,29 +578,84 @@ paths:
                       type: string
             responses:
                 '200':
-                    $ref: '#/components/responses/Ok'
+                    description: Successful response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/AzkarCategoryResponse'
+                '400':
+                    $ref: '#/components/responses/BadRequest'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '500':
+                    $ref: '#/components/responses/InternalError'
+                '503':
+                    $ref: '#/components/responses/Unavailable'
+            operationId: getAzkarCategory
+            description:
+                Canonical Hisn al-Muslim chapter title. Morning and evening adhkar share one chapter. Item IDs are ordinals within the returned chapter
+                and dataset, not cross-source identities. Missing structured repeat counts are omitted.
     /hadith:
         get:
-            tags: [Hadith]
+            tags:
+                - Hadith
             summary: List hadith books
             responses:
                 '200':
-                    $ref: '#/components/responses/Ok'
+                    description: Successful response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/HadithResponse'
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '500':
+                    $ref: '#/components/responses/InternalError'
+            operationId: getHadith
     /hadith/random:
         get:
-            tags: [Hadith]
+            tags:
+                - Hadith
             summary: Get random hadith
             parameters:
                 - name: book
                   in: query
                   schema:
                       type: string
+                      enum:
+                          - abu-daud
+                          - ahmad
+                          - bukhari
+                          - darimi
+                          - ibnu-majah
+                          - malik
+                          - muslim
+                          - nasai
+                          - tirmidzi
             responses:
                 '200':
-                    $ref: '#/components/responses/Ok'
+                    description: Successful response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/HadithRandomResponse'
+                '400':
+                    $ref: '#/components/responses/BadRequest'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '500':
+                    $ref: '#/components/responses/InternalError'
+                '503':
+                    $ref: '#/components/responses/Unavailable'
+            operationId: getHadithRandom
     /hadith/{book}:
         get:
-            tags: [Hadith]
+            tags:
+                - Hadith
             summary: Get hadith range from a book
             parameters:
                 - name: book
@@ -311,6 +663,16 @@ paths:
                   required: true
                   schema:
                       type: string
+                      enum:
+                          - abu-daud
+                          - ahmad
+                          - bukhari
+                          - darimi
+                          - ibnu-majah
+                          - malik
+                          - muslim
+                          - nasai
+                          - tirmidzi
                 - name: from
                   in: query
                   schema:
@@ -323,10 +685,29 @@ paths:
                       minimum: 1
             responses:
                 '200':
-                    $ref: '#/components/responses/Ok'
+                    description: Successful response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/HadithBookResponse'
+                '400':
+                    $ref: '#/components/responses/BadRequest'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '500':
+                    $ref: '#/components/responses/InternalError'
+                '503':
+                    $ref: '#/components/responses/Unavailable'
+            operationId: getHadithBook
+            description:
+                Range uses actual upstream hadith numbers, with at most 300 numbers inclusive. Numbering has gaps, so available is the number of stored
+                hadiths rather than a maximum ID; a valid range can return an empty array.
     /hadith/{book}/{number}:
         get:
-            tags: [Hadith]
+            tags:
+                - Hadith
             summary: Get one hadith by number
             parameters:
                 - name: book
@@ -334,6 +715,16 @@ paths:
                   required: true
                   schema:
                       type: string
+                      enum:
+                          - abu-daud
+                          - ahmad
+                          - bukhari
+                          - darimi
+                          - ibnu-majah
+                          - malik
+                          - muslim
+                          - nasai
+                          - tirmidzi
                 - name: number
                   in: path
                   required: true
@@ -342,25 +733,45 @@ paths:
                       minimum: 1
             responses:
                 '200':
-                    $ref: '#/components/responses/Ok'
+                    description: Successful response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/HadithBookNumberResponse'
+                '400':
+                    $ref: '#/components/responses/BadRequest'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '500':
+                    $ref: '#/components/responses/InternalError'
+                '503':
+                    $ref: '#/components/responses/Unavailable'
+            operationId: getHadithBookNumber
     /prayer/times:
         get:
-            tags: [Prayer]
+            tags:
+                - Prayer
             summary: Get prayer times
             parameters:
                 - name: date
                   in: query
                   schema:
                       type: string
-                      pattern: "^\\d{2}-\\d{2}-\\d{4}$"
+                      pattern: ^\d{2}-\d{2}-\d{4}$
                 - name: latitude
                   in: query
                   schema:
                       type: number
+                      minimum: -90
+                      maximum: 90
                 - name: longitude
                   in: query
                   schema:
                       type: number
+                      minimum: -180
+                      maximum: 180
                 - name: city
                   in: query
                   schema:
@@ -373,37 +784,117 @@ paths:
                   in: query
                   schema:
                       type: integer
+                      enum:
+                          - 1
+                          - 2
+                          - 3
+                          - 4
+                          - 5
+                          - 9
+                          - 10
+                          - 11
+                      default: 4
+                - name: timezone
+                  in: query
+                  description: IANA timezone applied to all sources. Coordinate requests support local fallback; city-only requests need the remote geocoder.
+                  schema:
+                      type: string
+                      default: UTC
+                      example: Asia/Riyadh
             responses:
                 '200':
-                    $ref: '#/components/responses/Ok'
+                    description: Successful response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/PrayerTimesResponse'
+                '400':
+                    $ref: '#/components/responses/BadRequest'
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '500':
+                    $ref: '#/components/responses/InternalError'
+                '503':
+                    $ref: '#/components/responses/Unavailable'
+            operationId: getPrayerTimes
     /hijri/today:
         get:
-            tags: [Hijri]
+            tags:
+                - Hijri
             summary: Get today's Hijri and Gregorian dates
             responses:
                 '200':
-                    $ref: '#/components/responses/Ok'
+                    description: Successful response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/HijriTodayResponse'
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '500':
+                    $ref: '#/components/responses/InternalError'
+                '503':
+                    $ref: '#/components/responses/Unavailable'
+            operationId: getHijriToday
+            description:
+                Both sources use Umm al-Qura. AlAdhan conversions are checked against local ICU results; the calendar field is islamic-umalqura.
+                Calendar conversion does not determine local moon sightings.
     /hijri/from-gregorian:
         get:
-            tags: [Hijri]
+            tags:
+                - Hijri
             summary: Convert Gregorian date to Hijri
             parameters:
-                - $ref: '#/components/parameters/Date'
+                - name: date
+                  in: query
+                  required: false
+                  description: Defaults to the server current date.
+                  schema:
+                      type: string
+                      pattern: ^\d{2}-\d{2}-\d{4}$
             responses:
                 '200':
-                    $ref: '#/components/responses/Ok'
+                    description: Successful response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/HijriFromGregorianResponse'
+                '400':
+                    $ref: '#/components/responses/BadRequest'
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '500':
+                    $ref: '#/components/responses/InternalError'
+                '503':
+                    $ref: '#/components/responses/Unavailable'
+            operationId: getHijriFromGregorian
     /hijri/to-gregorian:
         get:
-            tags: [Hijri]
+            tags:
+                - Hijri
             summary: Convert Hijri date to Gregorian
             parameters:
                 - $ref: '#/components/parameters/Date'
             responses:
                 '200':
-                    $ref: '#/components/responses/Ok'
+                    description: Successful response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/HijriToGregorianResponse'
+                '400':
+                    $ref: '#/components/responses/BadRequest'
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '500':
+                    $ref: '#/components/responses/InternalError'
+                '503':
+                    $ref: '#/components/responses/Unavailable'
+            operationId: getHijriToGregorian
     /qibla:
         get:
-            tags: [Qibla]
+            tags:
+                - Qibla
             summary: Get Qibla direction
             parameters:
                 - name: latitude
@@ -422,7 +913,20 @@ paths:
                       maximum: 180
             responses:
                 '200':
-                    $ref: '#/components/responses/Ok'
+                    description: Successful response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/QiblaResponse'
+                '400':
+                    $ref: '#/components/responses/BadRequest'
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '500':
+                    $ref: '#/components/responses/InternalError'
+                '503':
+                    $ref: '#/components/responses/Unavailable'
+            operationId: getQibla
 components:
     parameters:
         Date:
@@ -431,20 +935,16 @@ components:
             required: true
             schema:
                 type: string
-                pattern: "^\\d{2}-\\d{2}-\\d{4}$"
+                pattern: ^\d{2}-\d{2}-\d{4}$
         Edition:
             name: edition
             in: path
             required: true
             schema:
                 type: string
-                enum: [muyassar, jalalayn, saadi, waseet, qurtubi]
-        Limit:
-            name: limit
-            in: query
-            schema:
-                type: integer
-                minimum: 1
+                enum:
+                    - muyassar
+                    - saadi
         SurahId:
             name: surah
             in: path
@@ -454,55 +954,1133 @@ components:
                 minimum: 1
                 maximum: 114
     responses:
-        Ok:
-            description: OK
-            content:
-                application/json:
-                    schema:
-                        $ref: '#/components/schemas/OkResponse'
         BadRequest:
-            description: Bad request
+            description: Invalid request
             content:
                 application/json:
                     schema:
                         $ref: '#/components/schemas/ErrorResponse'
         NotFound:
-            description: Not found
+            description: Content not found
             content:
                 application/json:
                     schema:
                         $ref: '#/components/schemas/ErrorResponse'
         Unavailable:
-            description: All sources failed
+            description: All eligible sources failed
+            content:
+                application/json:
+                    schema:
+                        $ref: '#/components/schemas/ErrorResponse'
+        RateLimited:
+            description: Rate limit exceeded
+            content:
+                application/json:
+                    schema:
+                        $ref: '#/components/schemas/ErrorResponse'
+        InternalError:
+            description: Internal server error
             content:
                 application/json:
                     schema:
                         $ref: '#/components/schemas/ErrorResponse'
     schemas:
-        OkResponse:
+        Surah:
             type: object
-            required: [success, data]
+            additionalProperties: false
+            required:
+                - id
+                - name
+                - makkia
+                - apiName
             properties:
-                success:
+                id:
+                    type: integer
+                    minimum: 1
+                    maximum: 114
+                name:
+                    type: string
+                    minLength: 1
+                makkia:
                     type: boolean
-                    const: true
-                data: {}
+                apiName:
+                    type: string
+                    enum:
+                        - mp3quran.net
+                        - alquran.cloud
+                        - quran.com
+                        - local
+        Aya:
+            type: object
+            additionalProperties: false
+            required:
+                - number
+                - numberInSurah
+                - text
+            properties:
+                number:
+                    type: integer
+                    minimum: 1
+                    maximum: 6236
+                numberInSurah:
+                    type: integer
+                    minimum: 1
+                    maximum: 286
+                text:
+                    type: string
+                    minLength: 1
+        QuranSurah:
+            type: object
+            additionalProperties: false
+            required:
+                - number
+                - name
+                - ayat
+                - apiName
+            properties:
+                number:
+                    type: integer
+                    minimum: 1
+                    maximum: 114
+                name:
+                    type: string
+                    minLength: 1
+                ayat:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Aya'
+                    minItems: 1
+                    maxItems: 286
+                apiName:
+                    type: string
+                    enum:
+                        - alquran.cloud
+                        - cdn.jsdelivr.net/fawazahmed0/quran-api
+                        - quran.com
+        AyaLookup:
+            type: object
+            additionalProperties: false
+            required:
+                - surahNumber
+                - surahName
+                - aya
+                - apiName
+            properties:
+                surahNumber:
+                    type: integer
+                    minimum: 1
+                    maximum: 114
+                surahName:
+                    type: string
+                    minLength: 1
+                aya:
+                    $ref: '#/components/schemas/Aya'
+                apiName:
+                    type: string
+                    enum:
+                        - alquran.cloud
+                        - cdn.jsdelivr.net/fawazahmed0/quran-api
+                        - quran.com
+        Moshaf:
+            type: object
+            additionalProperties: false
+            required:
+                - id
+                - name
+                - server
+                - surahList
+                - rewayaId
+                - type
+            properties:
+                id:
+                    type: integer
+                    minimum: 1
+                name:
+                    type: string
+                    minLength: 1
+                server:
+                    type: string
+                    pattern: ^https://
+                surahList:
+                    type: array
+                    items:
+                        type: integer
+                        minimum: 1
+                        maximum: 114
+                    minItems: 1
+                    maxItems: 114
+                    uniqueItems: true
+                rewayaId:
+                    type: integer
+                    minimum: 1
+                type:
+                    type: integer
+                    minimum: 1
+        Reciter:
+            type: object
+            additionalProperties: false
+            required:
+                - id
+                - name
+                - moshaf
+                - apiName
+            properties:
+                id:
+                    type: integer
+                    minimum: 1
+                name:
+                    type: string
+                    minLength: 1
+                date:
+                    type: string
+                    minLength: 1
+                moshaf:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Moshaf'
+                    minItems: 1
+                apiName:
+                    type: string
+                    enum:
+                        - mp3quran.net
+                        - local
+        Audio:
+            type: object
+            additionalProperties: false
+            required:
+                - reciter
+                - surah
+                - audio
+                - moshafId
+                - rewayaId
+                - apiName
+            properties:
+                reciter:
+                    type: string
+                    minLength: 1
+                surah:
+                    type: integer
+                    minimum: 1
+                    maximum: 114
+                audio:
+                    type: string
+                    pattern: ^https://
+                moshafId:
+                    type: integer
+                    minimum: 1
+                rewayaId:
+                    type: integer
+                    minimum: 1
+                apiName:
+                    type: string
+                    enum:
+                        - mp3quran.net
+                        - quran.com
+        Tafsir:
+            type: object
+            additionalProperties: false
+            required:
+                - surah
+                - aya
+                - text
+                - edition
+                - apiName
+            properties:
+                surah:
+                    type: integer
+                    minimum: 1
+                    maximum: 114
+                aya:
+                    type: integer
+                    minimum: 1
+                    maximum: 286
+                text:
+                    type: string
+                    minLength: 1
+                edition:
+                    type: string
+                    enum:
+                        - muyassar
+                        - saadi
+                apiName:
+                    type: string
+                    enum:
+                        - alquran.cloud
+                        - quranenc.com
+                        - quran.com
+                        - cdn.jsdelivr.net/spa5k/tafsir_api
+        TafsirEdition:
+            type: object
+            additionalProperties: false
+            required:
+                - id
+                - label
+            properties:
+                id:
+                    type: string
+                    enum:
+                        - muyassar
+                        - saadi
+                label:
+                    type: string
+                    minLength: 1
+        Zekr:
+            type: object
+            additionalProperties: false
+            required:
+                - id
+                - text
+            properties:
+                id:
+                    type: integer
+                    minimum: 1
+                text:
+                    type: string
+                    minLength: 1
+                count:
+                    type: integer
+                    minimum: 1
+                reference:
+                    type: string
+                    minLength: 1
+                description:
+                    type: string
+                    minLength: 1
+                content:
+                    type: string
+                    minLength: 1
+        AzkarCategory:
+            type: object
+            additionalProperties: false
+            required:
+                - category
+                - items
+                - apiName
+            properties:
+                category:
+                    type: string
+                    minLength: 1
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Zekr'
+                    minItems: 1
+                apiName:
+                    type: string
+                    enum:
+                        - hisnmuslim.com
+                        - cdn.jsdelivr.net/rn0x/hisn_almuslim_json
+        AzkarSummary:
+            type: object
+            additionalProperties: false
+            required:
+                - name
+                - count
+                - apiName
+            properties:
+                name:
+                    type: string
+                    minLength: 1
+                count:
+                    type: integer
+                    minimum: 1
+                apiName:
+                    type: string
+                    enum:
+                        - hisnmuslim.com
+                        - cdn.jsdelivr.net/rn0x/hisn_almuslim_json
+        AzkarResult:
+            type: object
+            additionalProperties: false
+            required:
+                - category
+                - item
+                - apiName
+            properties:
+                category:
+                    type: string
+                    minLength: 1
+                item:
+                    $ref: '#/components/schemas/Zekr'
+                apiName:
+                    type: string
+                    enum:
+                        - hisnmuslim.com
+                        - cdn.jsdelivr.net/rn0x/hisn_almuslim_json
+        HadithBook:
+            type: object
+            additionalProperties: false
+            required:
+                - id
+                - name
+                - available
+                - apiName
+            properties:
+                id:
+                    type: string
+                    enum:
+                        - abu-daud
+                        - ahmad
+                        - bukhari
+                        - darimi
+                        - ibnu-majah
+                        - malik
+                        - muslim
+                        - nasai
+                        - tirmidzi
+                name:
+                    type: string
+                    minLength: 1
+                available:
+                    type: integer
+                    minimum: 1
+                apiName:
+                    type: string
+                    enum:
+                        - local
+        Hadith:
+            type: object
+            additionalProperties: false
+            required:
+                - number
+                - text
+                - book
+                - apiName
+            properties:
+                number:
+                    type: integer
+                    minimum: 1
+                text:
+                    type: string
+                    minLength: 1
+                book:
+                    type: string
+                    minLength: 1
+                apiName:
+                    type: string
+                    enum:
+                        - cdn.jsdelivr.net/gadingnst/hadith-api
+                        - raw.githubusercontent.com/gadingnst/hadith-api
+        HadithRange:
+            type: object
+            additionalProperties: false
+            required:
+                - book
+                - available
+                - hadiths
+            properties:
+                book:
+                    type: string
+                    minLength: 1
+                available:
+                    type: integer
+                    minimum: 1
+                hadiths:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Hadith'
+                    maxItems: 300
+        RandomHadith:
+            type: object
+            additionalProperties: false
+            required:
+                - book
+                - hadith
+            properties:
+                book:
+                    type: string
+                    minLength: 1
+                hadith:
+                    $ref: '#/components/schemas/Hadith'
+        Coordinates:
+            type: object
+            additionalProperties: false
+            required:
+                - latitude
+                - longitude
+            properties:
+                latitude:
+                    type: number
+                    minimum: -90
+                    maximum: 90
+                longitude:
+                    type: number
+                    minimum: -180
+                    maximum: 180
+        PrayerTimings:
+            type: object
+            additionalProperties: false
+            required:
+                - date
+                - timezone
+                - timings
+                - method
+                - coordinates
+                - apiName
+            properties:
+                date:
+                    type: string
+                    pattern: ^\d{2}-\d{2}-\d{4}$
+                hijri:
+                    type: string
+                    minLength: 1
+                timezone:
+                    type: string
+                    minLength: 1
+                timings:
+                    type: object
+                    additionalProperties: false
+                    required:
+                        - Fajr
+                        - Sunrise
+                        - Dhuhr
+                        - Asr
+                        - Sunset
+                        - Maghrib
+                        - Isha
+                    properties:
+                        Fajr:
+                            type: string
+                            pattern: ^(?:[01]\d|2[0-3]):[0-5]\d$
+                        Sunrise:
+                            type: string
+                            pattern: ^(?:[01]\d|2[0-3]):[0-5]\d$
+                        Dhuhr:
+                            type: string
+                            pattern: ^(?:[01]\d|2[0-3]):[0-5]\d$
+                        Asr:
+                            type: string
+                            pattern: ^(?:[01]\d|2[0-3]):[0-5]\d$
+                        Sunset:
+                            type: string
+                            pattern: ^(?:[01]\d|2[0-3]):[0-5]\d$
+                        Maghrib:
+                            type: string
+                            pattern: ^(?:[01]\d|2[0-3]):[0-5]\d$
+                        Isha:
+                            type: string
+                            pattern: ^(?:[01]\d|2[0-3]):[0-5]\d$
+                method:
+                    type: string
+                    minLength: 1
+                coordinates:
+                    $ref: '#/components/schemas/Coordinates'
+                apiName:
+                    type: string
+                    enum:
+                        - aladhan.com
+                        - local
+        HijriDate:
+            type: object
+            additionalProperties: false
+            required:
+                - hijri
+                - gregorian
+                - calendar
+                - apiName
+            properties:
+                hijri:
+                    type: object
+                    additionalProperties: false
+                    required:
+                        - date
+                        - day
+                        - month
+                        - monthAr
+                        - year
+                        - weekday
+                        - weekdayAr
+                    properties:
+                        date:
+                            type: string
+                            minLength: 1
+                        day:
+                            type: string
+                            minLength: 1
+                        month:
+                            type: string
+                            minLength: 1
+                        monthAr:
+                            type: string
+                            minLength: 1
+                        year:
+                            type: string
+                            minLength: 1
+                        weekday:
+                            type: string
+                            minLength: 1
+                        weekdayAr:
+                            type: string
+                            minLength: 1
+                gregorian:
+                    type: object
+                    additionalProperties: false
+                    required:
+                        - date
+                        - day
+                        - month
+                        - year
+                    properties:
+                        date:
+                            type: string
+                            minLength: 1
+                        day:
+                            type: string
+                            minLength: 1
+                        month:
+                            type: string
+                            minLength: 1
+                        year:
+                            type: string
+                            minLength: 1
+                calendar:
+                    type: string
+                    const: islamic-umalqura
+                apiName:
+                    type: string
+                    enum:
+                        - aladhan.com
+                        - local
+        Qibla:
+            type: object
+            additionalProperties: false
+            required:
+                - latitude
+                - longitude
+                - direction
+                - apiName
+            properties:
+                latitude:
+                    type: number
+                    minimum: -90
+                    maximum: 90
+                longitude:
+                    type: number
+                    minimum: -180
+                    maximum: 180
+                direction:
+                    type: number
+                    minimum: 0
+                    exclusiveMaximum: 360
+                apiName:
+                    type: string
+                    enum:
+                        - aladhan.com
+                        - local
         ErrorResponse:
             type: object
-            required: [success, message, error]
+            additionalProperties: false
+            required:
+                - success
+                - message
+                - error
             properties:
                 success:
                     type: boolean
                     const: false
                 message:
                     type: string
+                    minLength: 1
                 error:
                     type: object
-                    required: [code, message, requestId]
+                    additionalProperties: false
+                    required:
+                        - code
+                        - message
+                        - requestId
                     properties:
                         code:
                             type: string
+                            enum:
+                                - BAD_REQUEST
+                                - NOT_FOUND
+                                - RATE_LIMITED
+                                - ALL_SOURCES_FAILED
+                                - INTERNAL_SERVER_ERROR
                         message:
                             type: string
+                            minLength: 1
                         requestId:
                             type: string
+                            minLength: 1
+        Health:
+            type: object
+            additionalProperties: false
+            required:
+                - status
+                - code
+                - timestamp
+            properties:
+                status:
+                    const: ok
+                    type: string
+                code:
+                    const: 200
+                    type: integer
+                timestamp:
+                    type: string
+                    minLength: 1
+        Ready:
+            type: object
+            additionalProperties: false
+            required:
+                - status
+                - code
+                - timestamp
+                - cache
+            properties:
+                status:
+                    const: ready
+                    type: string
+                code:
+                    const: 200
+                    type: integer
+                timestamp:
+                    type: string
+                    minLength: 1
+                cache:
+                    type: object
+                    additionalProperties: false
+                    required:
+                        - entries
+                        - inflight
+                    properties:
+                        entries:
+                            type: integer
+                            minimum: 0
+                        inflight:
+                            type: integer
+                            minimum: 0
+        RouteCatalogue:
+            type: object
+            additionalProperties: false
+            required:
+                - name
+                - description
+                - routes
+            properties:
+                name:
+                    type: string
+                    minLength: 1
+                description:
+                    type: string
+                    minLength: 1
+                routes:
+                    type: array
+                    items:
+                        type: object
+                        additionalProperties: false
+                        required:
+                            - method
+                            - url
+                        properties:
+                            method:
+                                oneOf:
+                                    - type: string
+                                      minLength: 1
+                                    - type: array
+                                      items:
+                                          type: string
+                                          minLength: 1
+                            url:
+                                type: string
+                                minLength: 1
+                            schema:
+                                type: object
+                                additionalProperties: true
+        SurahResponse:
+            type: object
+            additionalProperties: false
+            required:
+                - success
+                - data
+            properties:
+                success:
+                    type: boolean
+                    const: true
+                data:
+                    type: object
+                    additionalProperties: false
+                    required:
+                        - surah
+                    properties:
+                        surah:
+                            type: array
+                            items:
+                                $ref: '#/components/schemas/Surah'
+                            minItems: 114
+                            maxItems: 114
+        SurahIdResponse:
+            type: object
+            additionalProperties: false
+            required:
+                - success
+                - data
+            properties:
+                success:
+                    type: boolean
+                    const: true
+                data:
+                    $ref: '#/components/schemas/Surah'
+        SurahSearchResponse:
+            type: object
+            additionalProperties: false
+            required:
+                - success
+                - data
+            properties:
+                success:
+                    type: boolean
+                    const: true
+                data:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Surah'
+        AyatResponse:
+            type: object
+            additionalProperties: false
+            required:
+                - success
+                - data
+            properties:
+                success:
+                    type: boolean
+                    const: true
+                data:
+                    type: object
+                    additionalProperties: false
+                    required:
+                        - surahs
+                    properties:
+                        surahs:
+                            type: array
+                            items:
+                                $ref: '#/components/schemas/QuranSurah'
+                            minItems: 114
+                            maxItems: 114
+        AyatIdResponse:
+            type: object
+            additionalProperties: false
+            required:
+                - success
+                - data
+            properties:
+                success:
+                    type: boolean
+                    const: true
+                data:
+                    $ref: '#/components/schemas/AyaLookup'
+        AyatSurahAyaIdResponse:
+            type: object
+            additionalProperties: false
+            required:
+                - success
+                - data
+            properties:
+                success:
+                    type: boolean
+                    const: true
+                data:
+                    $ref: '#/components/schemas/AyaLookup'
+        AyatSearchResponse:
+            type: object
+            additionalProperties: false
+            required:
+                - success
+                - data
+                - total
+            properties:
+                success:
+                    type: boolean
+                    const: true
+                data:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/AyaLookup'
+                    minItems: 1
+                    maxItems: 500
+                total:
+                    type: integer
+                    minimum: 1
+        RecitersResponse:
+            type: object
+            additionalProperties: false
+            required:
+                - success
+                - data
+            properties:
+                success:
+                    type: boolean
+                    const: true
+                data:
+                    type: object
+                    additionalProperties: false
+                    required:
+                        - reciters
+                    properties:
+                        reciters:
+                            type: array
+                            items:
+                                $ref: '#/components/schemas/Reciter'
+                            minItems: 1
+        RecitersIdResponse:
+            type: object
+            additionalProperties: false
+            required:
+                - success
+                - data
+            properties:
+                success:
+                    type: boolean
+                    const: true
+                data:
+                    $ref: '#/components/schemas/Reciter'
+        RecitersIdSurahSurahResponse:
+            type: object
+            additionalProperties: false
+            required:
+                - success
+                - data
+            properties:
+                success:
+                    type: boolean
+                    const: true
+                data:
+                    $ref: '#/components/schemas/Audio'
+        RecitersSearchResponse:
+            type: object
+            additionalProperties: false
+            required:
+                - success
+                - data
+            properties:
+                success:
+                    type: boolean
+                    const: true
+                data:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Reciter'
+                    minItems: 1
+        TafsirResponse:
+            type: object
+            additionalProperties: false
+            required:
+                - success
+                - data
+            properties:
+                success:
+                    type: boolean
+                    const: true
+                data:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/TafsirEdition'
+                    minItems: 2
+                    maxItems: 2
+        TafsirEditionSurahResponse:
+            type: object
+            additionalProperties: false
+            required:
+                - success
+                - data
+            properties:
+                success:
+                    type: boolean
+                    const: true
+                data:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Tafsir'
+                    minItems: 1
+                    maxItems: 286
+        TafsirEditionSurahAyaResponse:
+            type: object
+            additionalProperties: false
+            required:
+                - success
+                - data
+            properties:
+                success:
+                    type: boolean
+                    const: true
+                data:
+                    $ref: '#/components/schemas/Tafsir'
+        AzkarResponse:
+            type: object
+            additionalProperties: false
+            required:
+                - success
+                - data
+            properties:
+                success:
+                    type: boolean
+                    const: true
+                data:
+                    type: object
+                    additionalProperties: false
+                    required:
+                        - categories
+                    properties:
+                        categories:
+                            type: array
+                            items:
+                                $ref: '#/components/schemas/AzkarSummary'
+                            minItems: 132
+                            maxItems: 132
+        AzkarRandomResponse:
+            type: object
+            additionalProperties: false
+            required:
+                - success
+                - data
+            properties:
+                success:
+                    type: boolean
+                    const: true
+                data:
+                    $ref: '#/components/schemas/AzkarResult'
+        AzkarSearchResponse:
+            type: object
+            additionalProperties: false
+            required:
+                - success
+                - data
+                - total
+            properties:
+                success:
+                    type: boolean
+                    const: true
+                data:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/AzkarResult'
+                    minItems: 1
+                    maxItems: 200
+                total:
+                    type: integer
+                    minimum: 1
+        AzkarCategoryResponse:
+            type: object
+            additionalProperties: false
+            required:
+                - success
+                - data
+            properties:
+                success:
+                    type: boolean
+                    const: true
+                data:
+                    $ref: '#/components/schemas/AzkarCategory'
+        HadithResponse:
+            type: object
+            additionalProperties: false
+            required:
+                - success
+                - data
+            properties:
+                success:
+                    type: boolean
+                    const: true
+                data:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/HadithBook'
+                    minItems: 9
+                    maxItems: 9
+        HadithRandomResponse:
+            type: object
+            additionalProperties: false
+            required:
+                - success
+                - data
+            properties:
+                success:
+                    type: boolean
+                    const: true
+                data:
+                    $ref: '#/components/schemas/RandomHadith'
+        HadithBookResponse:
+            type: object
+            additionalProperties: false
+            required:
+                - success
+                - data
+            properties:
+                success:
+                    type: boolean
+                    const: true
+                data:
+                    $ref: '#/components/schemas/HadithRange'
+        HadithBookNumberResponse:
+            type: object
+            additionalProperties: false
+            required:
+                - success
+                - data
+            properties:
+                success:
+                    type: boolean
+                    const: true
+                data:
+                    $ref: '#/components/schemas/Hadith'
+        PrayerTimesResponse:
+            type: object
+            additionalProperties: false
+            required:
+                - success
+                - data
+            properties:
+                success:
+                    type: boolean
+                    const: true
+                data:
+                    $ref: '#/components/schemas/PrayerTimings'
+        HijriTodayResponse:
+            type: object
+            additionalProperties: false
+            required:
+                - success
+                - data
+            properties:
+                success:
+                    type: boolean
+                    const: true
+                data:
+                    $ref: '#/components/schemas/HijriDate'
+        HijriFromGregorianResponse:
+            type: object
+            additionalProperties: false
+            required:
+                - success
+                - data
+            properties:
+                success:
+                    type: boolean
+                    const: true
+                data:
+                    $ref: '#/components/schemas/HijriDate'
+        HijriToGregorianResponse:
+            type: object
+            additionalProperties: false
+            required:
+                - success
+                - data
+            properties:
+                success:
+                    type: boolean
+                    const: true
+                data:
+                    $ref: '#/components/schemas/HijriDate'
+        QiblaResponse:
+            type: object
+            additionalProperties: false
+            required:
+                - success
+                - data
+            properties:
+                success:
+                    type: boolean
+                    const: true
+                data:
+                    $ref: '#/components/schemas/Qibla'

@@ -44,4 +44,49 @@ describe('memoize', () => {
         await memoize('ttl', loader, { ttlMs: 5 });
         expect(loader).toHaveBeenCalledTimes(2);
     });
+
+    it('does not let an invalidated loader overwrite a newer value', async () => {
+        let finishOld!: (value: string) => void;
+        const old = memoize(
+            'race',
+            () =>
+                new Promise<string>((resolve) => {
+                    finishOld = resolve;
+                }),
+        );
+        await Promise.resolve();
+        invalidate('race');
+        await memoize('race', async () => 'new');
+        finishOld('old');
+        await old;
+        expect(await memoize('race', async () => 'unexpected')).toBe('new');
+    });
+
+    it('does not let a cleared loader delete a newer inflight task', async () => {
+        let finishOld!: (value: string) => void;
+        let finishNew!: (value: string) => void;
+        const old = memoize(
+            'race',
+            () =>
+                new Promise<string>((resolve) => {
+                    finishOld = resolve;
+                }),
+        );
+        await Promise.resolve();
+        clearCache();
+        const loader = vi.fn(
+            () =>
+                new Promise<string>((resolve) => {
+                    finishNew = resolve;
+                }),
+        );
+        const current = memoize('race', loader);
+        await Promise.resolve();
+        finishOld('old');
+        await old;
+        const joined = memoize('race', loader);
+        finishNew('new');
+        expect(await Promise.all([current, joined])).toEqual(['new', 'new']);
+        expect(loader).toHaveBeenCalledTimes(1);
+    });
 });

@@ -51,13 +51,13 @@ describe('Surah Controller', () => {
         expect(res.statusCode).toBe(400);
     });
 
-    it('should return surah by name (live)', async () => {
+    it('should return surah by name', async () => {
         const res = await app.inject({
             method: 'GET',
             url: '/surah/search?name=الفاتحة',
         });
 
-        expect([200, 404, 503]).toContain(res.statusCode);
+        expect(res.statusCode).toBe(200);
     });
 
     it('should return 400 when search name is missing', async () => {
@@ -67,6 +67,10 @@ describe('Surah Controller', () => {
         });
 
         expect(res.statusCode).toBe(400);
+    });
+
+    it('should reject empty search name', async () => {
+        expect((await app.inject({ method: 'GET', url: '/surah/search?name=' })).statusCode).toBe(400);
     });
 
     it('should return 400 for invalid surah id', async () => {

@@ -8,6 +8,7 @@ import { FastifyReply, FastifyRequest } from 'fastify';
 import { getSurahContent } from './surah.service.js';
 import { normalizeArabic } from '../../utils/arabic.js';
 import { fail, ok, unavailable } from '../../utils/http.js';
+import { parseInteger } from '../../utils/validation.js';
 
 export async function getSurah(_req: FastifyRequest, reply: FastifyReply) {
     try {
@@ -19,7 +20,7 @@ export async function getSurah(_req: FastifyRequest, reply: FastifyReply) {
 }
 
 export async function getSurahById(req: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
-    const id = parseInt(req.params.id, 10);
+    const id = parseInteger(req.params.id);
     if (Number.isNaN(id) || id < 1 || id > 114) return fail(reply, 400, 'Surah id must be between 1 and 114');
 
     try {

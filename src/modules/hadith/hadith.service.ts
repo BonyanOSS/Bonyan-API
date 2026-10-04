@@ -4,110 +4,66 @@
  * MIT License
  */
 
-import type { HadithBook, HadithItem } from '@/src/types/Items.js';
-import { fetchWithTimeout } from '../../utils/fallback.js';
+import type { HadithBook, HadithItem, HadithRange, HadithApiSource } from '../../types/Items.js';
+import { fetchJson, runWithFallback } from '../../utils/fallback.js';
 import { memoize } from '../../utils/cache.js';
+import { positiveInteger, requiredText } from '../../utils/validation.js';
+import { HADITH_BOOKS, HADITH_REVISION } from './hadith.metadata.js';
 
-interface GadingBooksPayload {
-    data: { id: string; name: string; available: number }[];
+interface HadithRow {
+    number: number;
+    arab: string;
 }
-
-interface GadingBookPayload {
-    data: {
-        id: string;
-        name: string;
-        available: number;
-        hadiths: { number: number; arab: string; id: string }[];
-    };
+export function isSupportedBook(id: string): boolean {
+    return HADITH_BOOKS.some((b) => b.id === id);
 }
-
-const PRIMARY_BOOKS_URL = 'https://api.hadith.gading.dev/books';
-const FALLBACK_BOOKS_URL = 'https://cdn.jsdelivr.net/gh/sutanlab/hadith-api@master/data/index.json';
-
-interface JsdelivrBook {
-    id: string;
-    name: string;
-    available: number;
+function bookMeta(id: string) {
+    const book = HADITH_BOOKS.find((b) => b.id === id);
+    if (!book) throw new Error('Unsupported hadith book');
+    return book;
 }
-
-async function fetchBooksPrimary(): Promise<HadithBook[]> {
-    const res = await fetchWithTimeout(PRIMARY_BOOKS_URL, {}, 10000);
-    if (!res.ok) throw new Error('hadith.gading.dev books failed');
-    const json = (await res.json()) as GadingBooksPayload;
-    return json.data.map((b) => ({ ...b, apiName: 'hadith.gading.dev' as const }));
-}
-
-async function fetchBooksFallback(): Promise<HadithBook[]> {
-    const res = await fetchWithTimeout(FALLBACK_BOOKS_URL, {}, 10000);
-    if (!res.ok) throw new Error('jsdelivr hadith books failed');
-    const json = (await res.json()) as JsdelivrBook[];
-    return json.map((b) => ({ ...b, apiName: 'cdn.jsdelivr.net/sutanlab/hadith-api' as const }));
-}
-
 export async function listBooks(): Promise<HadithBook[]> {
-    return memoize(
-        'hadith:books',
-        async () => {
-            try {
-                return await fetchBooksPrimary();
-            } catch {
-                return await fetchBooksFallback();
-            }
-        },
-        { ttlMs: 1000 * 60 * 60 * 24 },
-    );
+    return HADITH_BOOKS.map((b) => ({ ...b, apiName: 'local' }));
 }
-
-async function fetchBookFromGading(bookId: string, range: { from: number; to: number }) {
-    const url = `https://api.hadith.gading.dev/books/${bookId}?range=${range.from}-${range.to}`;
-    const res = await fetchWithTimeout(url, {}, 12000);
-    if (!res.ok) throw new Error('hadith.gading.dev book failed');
-    const json = (await res.json()) as GadingBookPayload;
-    const hadiths: HadithItem[] = json.data.hadiths.map((h) => ({
-        number: h.number,
-        text: h.arab,
-        book: json.data.name,
-        apiName: 'hadith.gading.dev',
-    }));
-    return { book: json.data.name, available: json.data.available, hadiths };
+function normalize(rows: HadithRow[], bookId: string, apiName: HadithApiSource): HadithItem[] {
+    const book = bookMeta(bookId);
+    if (rows.length !== book.available) throw new Error('Incomplete hadith book');
+    const result = rows
+        .map((r) => ({ number: positiveInteger(r.number), text: requiredText(r.arab), book: book.name, apiName }))
+        .sort((a, b) => a.number - b.number);
+    if (new Set(result.map((r) => r.number)).size !== result.length) throw new Error('Duplicate hadith number');
+    return result;
 }
-
-async function fetchBookFromCdn(bookId: string, range: { from: number; to: number }) {
-    const url = `https://cdn.jsdelivr.net/gh/sutanlab/hadith-api@master/data/${bookId}.json`;
-    const res = await fetchWithTimeout(url, {}, 15000);
-    if (!res.ok) throw new Error('jsdelivr hadith book failed');
-    const json = (await res.json()) as { name: string; available: number; hadiths: { number: number; arab: string }[] };
-
-    const sliced = json.hadiths.filter((h) => h.number >= range.from && h.number <= range.to);
-    return {
-        book: json.name,
-        available: json.available,
-        hadiths: sliced.map((h) => ({ number: h.number, text: h.arab, book: json.name, apiName: 'cdn.jsdelivr.net/sutanlab/hadith-api' as const })),
-    };
+export function buildHadithApis(bookId: string): (() => Promise<HadithItem[]>)[] {
+    bookMeta(bookId);
+    const path = HADITH_REVISION + '/books/' + bookId + '.json';
+    return [
+        async () =>
+            normalize(
+                await fetchJson<HadithRow[]>('https://cdn.jsdelivr.net/gh/gadingnst/hadith-api@' + path, 30000),
+                bookId,
+                'cdn.jsdelivr.net/gadingnst/hadith-api',
+            ),
+        async () =>
+            normalize(
+                await fetchJson<HadithRow[]>('https://raw.githubusercontent.com/gadingnst/hadith-api/' + path, 30000),
+                bookId,
+                'raw.githubusercontent.com/gadingnst/hadith-api',
+            ),
+    ];
 }
-
-export async function getBook(bookId: string, range?: { from: number; to: number }) {
-    const window = range ?? { from: 1, to: 30 };
-    const cacheKey = `hadith:book:${bookId}:${window.from}-${window.to}`;
-
-    return memoize(
-        cacheKey,
-        async () => {
-            try {
-                return await fetchBookFromGading(bookId, window);
-            } catch (primary) {
-                try {
-                    return await fetchBookFromCdn(bookId, window);
-                } catch {
-                    throw primary instanceof Error ? primary : new Error('Hadith fallback failed');
-                }
-            }
-        },
-        { ttlMs: 1000 * 60 * 60 * 12 },
-    );
+async function loadBook(bookId: string): Promise<HadithItem[]> {
+    return memoize('hadith:full:' + bookId, () => runWithFallback(buildHadithApis(bookId)), { ttlMs: 1000 * 60 * 60 * 12 });
 }
-
+export async function getBook(bookId: string, range = { from: 1, to: 30 }): Promise<HadithRange> {
+    const meta = bookMeta(bookId);
+    const rows = await loadBook(bookId);
+    return { book: meta.name, available: meta.available, hadiths: rows.filter((h) => h.number >= range.from && h.number <= range.to) };
+}
 export async function getHadith(bookId: string, number: number): Promise<HadithItem | null> {
-    const data = await getBook(bookId, { from: number, to: number });
-    return data.hadiths.find((h) => h.number === number) ?? null;
+    return (await loadBook(bookId)).find((h) => h.number === number) ?? null;
+}
+export async function getRandomHadithItem(bookId: string): Promise<HadithItem> {
+    const rows = await loadBook(bookId);
+    return rows[Math.floor(Math.random() * rows.length)]!;
 }

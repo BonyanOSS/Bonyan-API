@@ -1,6 +1,6 @@
 {
     "name": "bonyan-api",
-    "version": "2.0.0",
+    "version": "2.1.0",
     "description": "API for broadcasting the Quran and Islamic supplications, with automatic fallback between multiple sources and a unified data interface (Quran, Tafsir, Azkar, Hadith, Prayer Times, Hijri Date, Qibla)",
     "main": "dist/server.js",
     "type": "module",
@@ -8,11 +8,12 @@
         "dev": "tsx watch src/server.ts",
         "build": "tsc",
         "start": "node dist/server.js",
-        "lint": "eslint src tests --fix",
-        "lint:check": "eslint src tests",
+        "lint": "eslint src tests scripts --fix",
+        "lint:check": "eslint src tests scripts",
         "test": "vitest run",
         "test:watch": "vitest",
         "test:coverage": "vitest run --coverage",
+        "check:upstreams": "tsx scripts/check-upstreams.ts",
         "prepare": "husky"
     },
     "keywords": [
@@ -35,27 +36,27 @@
     "dependencies": {
         "@fastify/cors": "^11.2.0",
         "@fastify/rate-limit": "^11.0.0",
+        "adhan": "^4.4.6",
         "dotenv": "^17.4.2",
         "fastify": "^5.12.1"
     },
     "devDependencies": {
         "@eslint/js": "^10.0.1",
-        "@types/node": "^26.0.1",
-        "@types/supertest": "^7.2.0",
-        "@typescript-eslint/eslint-plugin": "^8.62.0",
-        "@typescript-eslint/parser": "^8.62.0",
+        "@types/node": "^24.19.1",
         "@vitest/coverage-v8": "^4.1.9",
+        "ajv": "^8.20.0",
         "eslint": "^10.6.0",
-        "eslint-config-prettier": "^10.1.8",
         "eslint-plugin-prettier": "^5.5.6",
         "eslint-plugin-simple-header": "^1.2.2",
         "husky": "^9.1.7",
         "prettier": "^3.9.0",
-        "supertest": "^7.2.2",
-        "ts-node": "^10.9.2",
         "tsx": "^4.22.4",
         "typescript": "^6.0.3",
         "typescript-eslint": "^8.62.0",
-        "vitest": "^4.1.9"
+        "vitest": "^4.1.9",
+        "yaml": "^2.9.1"
+    },
+    "engines": {
+        "node": ">=24 <25"
     }
 }
