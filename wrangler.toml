@@ -3,6 +3,12 @@ main = "src/worker.ts"
 compatibility_date = "2026-10-04"
 compatibility_flags = ["nodejs_compat"]
 
+[[routes]]
+pattern = "api.bonyanoss.org"
+custom_domain = true
+
+[previews]
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["BonyanApiContainer"]
