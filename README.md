@@ -36,7 +36,9 @@ Deploy command: pnpm run deploy:cloudflare
 
 Set production variables and secrets in the Worker and container settings. Do not upload `.env`. Cloudflare Containers require a Workers Paid plan and build the existing Docker image. For a local deployment, run `pnpm build` before `pnpm deploy:cloudflare`; local container development requires Docker.
 
-Use `pnpm run deploy:cloudflare` in the production Workers Build. The repository script pins the local Wrangler binary and explicitly selects `wrangler.toml`. For preview branches, connect a separate staging Worker or Wrangler environment and use `wrangler versions upload`; preview uploads do not build or roll out container images. Do not use the old static Pages deployment command.
+Use `pnpm run deploy:cloudflare` in the production Workers Build. The repository script pins the local Wrangler binary and explicitly selects `wrangler.toml`. To test a branch before production, connect a separate staging Worker or Wrangler environment and run a full deploy there. `wrangler versions upload` uploads Worker code only; it does not build or roll out container images or provide a full container preview.
+
+CI runs `pnpm cloudflare:startup` to execute the Worker in workerd, then builds the Docker image and requests `/health` from its Node.js server. A successful `tsc` build or Wrangler dry run alone does not validate Worker startup. Keep Fastify initialization in `src/server.ts` inside the container; awaiting it at module scope in `src/worker.ts` can cause `Top-level await in module is unsettled` during deployment.
 
 ## API
 

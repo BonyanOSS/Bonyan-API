@@ -15,6 +15,7 @@
         "test:coverage": "vitest run --coverage",
         "check:upstreams": "tsx scripts/check-upstreams.ts",
         "cloudflare:check": "pnpm exec wrangler deploy --dry-run --containers-rollout=none --config wrangler.toml",
+        "cloudflare:startup": "tsx scripts/check-worker-startup.ts",
         "deploy:cloudflare": "pnpm exec wrangler deploy --config wrangler.toml",
         "prepare": "husky"
     },
