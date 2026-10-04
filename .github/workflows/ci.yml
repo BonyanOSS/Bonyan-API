@@ -49,7 +49,7 @@ jobs:
                   docker build -t bonyan-api-ci .
                   docker run --detach --name bonyan-api-ci --publish 127.0.0.1:3000:3000 bonyan-api-ci
                   trap 'docker logs bonyan-api-ci; docker rm --force bonyan-api-ci' EXIT
-                  curl --fail --silent --show-error --retry 30 --retry-delay 1 --retry-connrefused --max-time 5 http://127.0.0.1:3000/health --output /tmp/bonyan-health.json
+                  curl --fail --silent --show-error --retry 30 --retry-delay 1 --retry-all-errors --retry-max-time 60 --max-time 5 http://127.0.0.1:3000/health --output /tmp/bonyan-health.json
                   node -e "const fs = require('node:fs'); const assert = require('node:assert/strict'); assert.equal(JSON.parse(fs.readFileSync('/tmp/bonyan-health.json', 'utf8')).status, 'ok');"
 
             - name: Run Vitest tests with coverage
