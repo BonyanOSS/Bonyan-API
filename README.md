@@ -36,7 +36,7 @@ Deploy command: pnpm run deploy:cloudflare
 
 Set production variables and secrets in the Worker and container settings. Do not upload `.env`. Cloudflare Containers require a Workers Paid plan and build the existing Docker image. For a local deployment, run `pnpm build` before `pnpm deploy:cloudflare`; local container development requires Docker.
 
-Use `pnpm run deploy:cloudflare` in the dashboard. The repository script pins the local Wrangler binary and explicitly selects `wrangler.toml`. Do not use the old static Pages deployment command.
+Use `pnpm run deploy:cloudflare` in the production Workers Build. The repository script pins the local Wrangler binary and explicitly selects `wrangler.toml`. For preview branches, connect a separate staging Worker or Wrangler environment and use `wrangler versions upload`; preview uploads do not build or roll out container images. Do not use the old static Pages deployment command.
 
 ## API
 
