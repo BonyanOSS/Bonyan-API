@@ -9,7 +9,7 @@ WORKDIR /src
 COPY tsconfig.json ./
 COPY src ./src
 RUN pnpm run build
-RUN pnpm prune --prod
+RUN pnpm prune --prod --ignore-scripts
 
 FROM node:24-alpine
 ENV NODE_ENV=production
