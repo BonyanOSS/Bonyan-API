@@ -7,6 +7,8 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { getTafsir, isSupportedEdition, listEditions } from './tafsir.service.js';
 import { fail, ok, unavailable } from '../../utils/http.js';
+import { parseInteger } from '../../utils/validation.js';
+import { SURAH_METADATA } from '../surah/surah.metadata.js';
 
 export async function getTafsirEditions(_req: FastifyRequest, reply: FastifyReply) {
     return ok(reply, listEditions());
@@ -19,15 +21,16 @@ export async function getTafsirForSurah(
     const { edition, surah } = req.params;
     if (!isSupportedEdition(edition)) return fail(reply, 400, 'Unsupported tafsir edition');
 
-    const surahNum = parseInt(surah, 10);
+    const surahNum = parseInteger(surah);
     if (Number.isNaN(surahNum) || surahNum < 1 || surahNum > 114) {
         return fail(reply, 400, 'Surah number must be between 1 and 114');
     }
 
     let ayaNum: number | undefined;
     if (req.query.aya !== undefined) {
-        ayaNum = parseInt(req.query.aya, 10);
+        ayaNum = parseInteger(req.query.aya);
         if (Number.isNaN(ayaNum) || ayaNum < 1) return fail(reply, 400, 'Aya number must be a positive integer');
+        if (ayaNum > SURAH_METADATA[surahNum - 1]!.ayahCount) return fail(reply, 404, 'Aya not found');
     }
 
     try {
@@ -43,10 +46,11 @@ export async function getTafsirForAya(req: FastifyRequest<{ Params: { edition: s
     const { edition, surah, aya } = req.params;
     if (!isSupportedEdition(edition)) return fail(reply, 400, 'Unsupported tafsir edition');
 
-    const surahNum = parseInt(surah, 10);
-    const ayaNum = parseInt(aya, 10);
+    const surahNum = parseInteger(surah);
+    const ayaNum = parseInteger(aya);
     if (Number.isNaN(surahNum) || surahNum < 1 || surahNum > 114) return fail(reply, 400, 'Surah number must be between 1 and 114');
     if (Number.isNaN(ayaNum) || ayaNum < 1) return fail(reply, 400, 'Aya number must be a positive integer');
+    if (ayaNum > SURAH_METADATA[surahNum - 1]!.ayahCount) return fail(reply, 404, 'Aya not found');
 
     try {
         const result = await getTafsir(edition, surahNum, ayaNum);

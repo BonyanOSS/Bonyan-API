@@ -4,117 +4,106 @@
  * MIT License
  */
 
-import type { ApiFunction, AlAdhanTimingsResponse, PrayZoneTimesResponse } from '@/src/types/Api.js';
-import type { PrayerTimings } from '@/src/types/Items.js';
-import { fetchWithTimeout } from '../../utils/fallback.js';
+import { CalculationMethod, Coordinates, PrayerTimes } from 'adhan';
+import type { AlAdhanTimingsResponse, ApiFunction } from '../../types/Api.js';
+import type { PrayerTimings } from '../../types/Items.js';
+import { fetchJson, runWithFallback } from '../../utils/fallback.js';
 import { memoize } from '../../utils/cache.js';
+import { requiredText, validGregorianDate } from '../../utils/validation.js';
 
 export interface PrayerQuery {
-    date: string; // DD-MM-YYYY
+    date: string;
     latitude?: number;
     longitude?: number;
     city?: string;
     country?: string;
     method?: number;
+    timezone?: string;
 }
-
-function todayDDMMYYYY(): string {
-    const d = new Date();
-    return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
+// Only these methods have verified equivalent parameters in the local adapter.
+const METHODS = {
+    1: { label: 'University of Islamic Sciences, Karachi', create: CalculationMethod.Karachi },
+    2: { label: 'Islamic Society of North America (ISNA)', create: CalculationMethod.NorthAmerica },
+    3: { label: 'Muslim World League', create: CalculationMethod.MuslimWorldLeague },
+    4: { label: 'Umm Al-Qura University, Makkah', create: CalculationMethod.UmmAlQura },
+    5: { label: 'Egyptian General Authority of Survey', create: CalculationMethod.Egyptian },
+    9: { label: 'Kuwait', create: CalculationMethod.Kuwait },
+    10: { label: 'Qatar', create: CalculationMethod.Qatar },
+    11: { label: 'Majlis Ugama Islam Singapura, Singapore', create: CalculationMethod.Singapore },
+} as const;
+export function isSupportedMethod(method: number): method is keyof typeof METHODS {
+    return Object.hasOwn(METHODS, method);
 }
-
-function buildAlAdhanQuery(q: PrayerQuery): string {
-    const params = new URLSearchParams();
-    if (q.method !== undefined) params.set('method', String(q.method));
-    if (q.latitude !== undefined) params.set('latitude', String(q.latitude));
-    if (q.longitude !== undefined) params.set('longitude', String(q.longitude));
-    if (q.city) params.set('city', q.city);
-    if (q.country) params.set('country', q.country);
-    return params.toString();
+const KEYS = ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Sunset', 'Maghrib', 'Isha'] as const;
+function time(value: string): string {
+    const match = /^(\d{2}:\d{2})(?:\s.*)?$/.exec(requiredText(value));
+    if (!match || Number(match[1]!.slice(0, 2)) > 23 || Number(match[1]!.slice(3)) > 59) throw new Error('Invalid prayer time');
+    return match[1]!;
 }
-
-export function buildApis(q: PrayerQuery): ApiFunction<PrayerTimings>[] {
-    const hasCoords = q.latitude !== undefined && q.longitude !== undefined;
-    const hasCity = !!q.city && !!q.country;
-
-    const apis: ApiFunction<PrayerTimings>[] = [];
-
-    if (hasCoords) {
-        apis.push(async () => {
-            const url = `https://api.aladhan.com/v1/timings/${q.date}?${buildAlAdhanQuery(q)}`;
-            const res = await fetchWithTimeout(url, {}, 10000);
-            if (!res.ok) throw new Error('aladhan timings failed');
-            const json = (await res.json()) as AlAdhanTimingsResponse;
-            return [mapAlAdhan(json)];
-        });
-    }
-
-    if (hasCity) {
-        apis.push(async () => {
-            const url = `https://api.aladhan.com/v1/timingsByCity/${q.date}?${buildAlAdhanQuery(q)}`;
-            const res = await fetchWithTimeout(url, {}, 10000);
-            if (!res.ok) throw new Error('aladhan timingsByCity failed');
-            const json = (await res.json()) as AlAdhanTimingsResponse;
-            return [mapAlAdhan(json)];
-        });
-    }
-
-    if (hasCoords && q.date === todayDDMMYYYY()) {
-        apis.push(async () => {
-            const url = `https://api.pray.zone/v2/times/today.json?longitude=${q.longitude}&latitude=${q.latitude}`;
-            const res = await fetchWithTimeout(url, {}, 10000);
-            if (!res.ok) throw new Error('pray.zone today failed');
-            const json = (await res.json()) as PrayZoneTimesResponse;
-            const today = json.results.datetime[0];
-            if (!today) throw new Error('pray.zone empty result');
-            return [
-                {
-                    date: today.date.gregorian,
-                    hijri: today.date.hijri,
-                    timings: today.times as PrayerTimings['timings'],
-                    apiName: 'pray.zone',
-                },
-            ];
-        });
-    }
-
-    return apis;
-}
-
-function mapAlAdhan(json: AlAdhanTimingsResponse): PrayerTimings {
+function normalize(q: PrayerQuery, json: AlAdhanTimingsResponse): PrayerTimings {
+    const data = json.data;
+    if (!validGregorianDate(data.date.gregorian.date) || data.date.gregorian.date !== q.date || data.meta.method.id !== (q.method ?? 4))
+        throw new Error('Wrong prayer date or method');
+    if (data.meta.timezone !== (q.timezone ?? 'UTC')) throw new Error('Wrong prayer timezone');
+    if (!Number.isFinite(data.meta.latitude) || !Number.isFinite(data.meta.longitude)) throw new Error('Invalid prayer coordinates');
+    if (q.latitude !== undefined && (Math.abs(q.latitude - data.meta.latitude) > 0.01 || Math.abs(q.longitude! - data.meta.longitude) > 0.01))
+        throw new Error('Wrong prayer coordinates');
     return {
-        date: json.data.date.gregorian.date,
-        hijri: json.data.date.hijri.date,
-        timings: json.data.timings as PrayerTimings['timings'],
-        method: json.data.meta.method.name,
-        coordinates: { latitude: json.data.meta.latitude, longitude: json.data.meta.longitude },
+        date: q.date,
+        hijri: requiredText(data.date.hijri.date),
+        timezone: data.meta.timezone,
+        timings: Object.fromEntries(KEYS.map((k) => [k, time(data.timings[k]!)])) as PrayerTimings['timings'],
+        method: METHODS[(q.method ?? 4) as keyof typeof METHODS].label,
+        coordinates: { latitude: data.meta.latitude, longitude: data.meta.longitude },
         apiName: 'aladhan.com',
     };
 }
-
-async function fetchWithFallback(apis: ApiFunction<PrayerTimings>[]): Promise<PrayerTimings> {
-    let lastError: Error | null = null;
-    for (const api of apis) {
-        try {
-            const result = await api();
-            if (result.length > 0 && result[0]) return result[0];
-        } catch (err) {
-            lastError = err instanceof Error ? err : new Error('Unknown error');
-        }
-    }
-    throw lastError ?? new Error('No prayer time APIs available');
-}
-
-export async function getPrayerTimes(q: PrayerQuery): Promise<PrayerTimings> {
-    const cacheKey = `prayer:${q.date}:${q.latitude ?? ''}:${q.longitude ?? ''}:${q.city ?? ''}:${q.country ?? ''}:${q.method ?? ''}`;
-
-    return memoize(
-        cacheKey,
-        async () => {
-            const apis = buildApis(q);
-            if (apis.length === 0) throw new Error('Provide either coordinates (latitude+longitude) or city+country');
-            return fetchWithFallback(apis);
-        },
-        { ttlMs: 1000 * 60 * 60 },
+async function local(q: PrayerQuery): Promise<PrayerTimings> {
+    if (q.latitude === undefined || q.longitude === undefined) throw new Error('Local prayer calculation needs coordinates');
+    const method = q.method ?? 4;
+    if (!isSupportedMethod(method)) throw new Error('Unsupported prayer method');
+    const [day, month, year] = q.date.split('-').map(Number) as [number, number, number];
+    const date = new Date(year, month - 1, day);
+    const parameters = METHODS[method].create();
+    // Umm al-Qura/Qatar use a 120-minute Isha interval during Ramadan.
+    const islamicMonth = new Intl.DateTimeFormat('en-u-ca-islamic-umalqura', { month: 'numeric', timeZone: 'UTC' }).format(
+        new Date(Date.UTC(year, month - 1, day)),
     );
+    if ((method === 4 || method === 10) && Number(islamicMonth) === 9) parameters.ishaInterval = 120;
+    const prayer = new PrayerTimes(new Coordinates(q.latitude, q.longitude), date, parameters);
+    const formatter = new Intl.DateTimeFormat('en-GB', { timeZone: q.timezone ?? 'UTC', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+    const values = [prayer.fajr, prayer.sunrise, prayer.dhuhr, prayer.asr, prayer.sunset, prayer.maghrib, prayer.isha];
+    if (values.some((v) => !Number.isFinite(v.getTime()))) throw new Error('Prayer calculation unavailable at these coordinates/date');
+    return {
+        date: q.date,
+        timezone: q.timezone ?? 'UTC',
+        timings: Object.fromEntries(KEYS.map((key, i) => [key, formatter.format(values[i]!)])) as PrayerTimings['timings'],
+        method: METHODS[method].label,
+        coordinates: { latitude: q.latitude, longitude: q.longitude },
+        apiName: 'local',
+    };
+}
+export function buildApis(q: PrayerQuery): ApiFunction<PrayerTimings>[] {
+    const query = new URLSearchParams({ method: String(q.method ?? 4), school: '0', timezonestring: q.timezone ?? 'UTC' });
+    const apis: ApiFunction<PrayerTimings>[] = [];
+    if (q.latitude !== undefined && q.longitude !== undefined) {
+        query.set('latitude', String(q.latitude));
+        query.set('longitude', String(q.longitude));
+        apis.push(async () => [
+            normalize(q, await fetchJson<AlAdhanTimingsResponse>('https://api.aladhan.com/v1/timings/' + q.date + '?' + query, 10000)),
+        ]);
+    } else if (q.city && q.country) {
+        query.set('city', q.city);
+        query.set('country', q.country);
+        apis.push(async () => [
+            normalize(q, await fetchJson<AlAdhanTimingsResponse>('https://api.aladhan.com/v1/timingsByCity/' + q.date + '?' + query, 10000)),
+        ]);
+    }
+    if (q.latitude !== undefined && q.longitude !== undefined) apis.push(async () => [await local(q)]);
+    return apis;
+}
+export async function getPrayerTimes(q: PrayerQuery): Promise<PrayerTimings> {
+    if (!validGregorianDate(q.date) || !isSupportedMethod(q.method ?? 4)) throw new Error('Invalid prayer date or method');
+    const key = 'prayer:' + JSON.stringify(q);
+    return memoize(key, async () => (await runWithFallback(buildApis(q)))[0]!, { ttlMs: 1000 * 60 * 60 });
 }

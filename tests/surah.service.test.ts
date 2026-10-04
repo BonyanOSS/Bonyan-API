@@ -6,8 +6,9 @@
 
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import type { SurahItem } from '../src/types/Items';
-import { getSurahContent, fetchWithFallback } from '../src/modules/surah/surah.service';
+import { getSurahContent } from '../src/modules/surah/surah.service';
 import { clearCache } from '../src/utils/cache';
+import { SURAH_METADATA } from '../src/modules/surah/surah.metadata';
 
 const originalFetch = globalThis.fetch;
 
@@ -18,25 +19,9 @@ afterEach(() => {
 });
 
 describe('Surah Service', () => {
-    it('fetchWithFallback returns first successful API result', async () => {
-        const fakeApi1: () => Promise<number[]> = vi.fn().mockRejectedValue(new Error('fail1'));
-        const fakeApi2: () => Promise<number[]> = vi.fn().mockResolvedValue([1, 2, 3]);
-
-        const result = await fetchWithFallback([fakeApi1, fakeApi2]);
-        expect(result).toEqual([1, 2, 3]);
-        expect(fakeApi1).toHaveBeenCalledTimes(1);
-        expect(fakeApi2).toHaveBeenCalledTimes(1);
-    });
-
     it('getSurahContent calls surahApis and returns typed data', async () => {
         const mockData = {
-            suwar: [
-                {
-                    id: 1,
-                    name: 'Test',
-                    makkia: 1,
-                },
-            ],
+            suwar: SURAH_METADATA.map((s) => ({ id: s.id, name: s.name, makkia: Number(s.makkia) })),
         };
 
         globalThis.fetch = vi.fn().mockResolvedValue({
@@ -45,7 +30,7 @@ describe('Surah Service', () => {
         } as Response);
 
         const result: { surah: SurahItem[] } = await getSurahContent();
-        expect(result.surah[0].name).toBe('Test');
+        expect(result.surah[0].name).toBe('الفاتحة');
         expect(result.surah[0].id).toBe(1);
     });
 });

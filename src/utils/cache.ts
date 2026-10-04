@@ -56,20 +56,22 @@ function refresh<T>(key: string, loader: () => Promise<T>, ttl: number, staleWhi
     const existing = inflight.get(key) as Promise<T> | undefined;
     if (existing) return existing;
 
-    const task = (async () => {
+    const task = Promise.resolve().then(async () => {
         try {
             const value = await loader();
-            store.set(key, {
-                value,
-                expiresAt: Date.now() + ttl,
-                staleUntil: Date.now() + ttl + staleWhileRevalidateMs,
-            });
-            evictIfNeeded(maxEntries);
+            if (inflight.get(key) === task) {
+                store.set(key, {
+                    value,
+                    expiresAt: Date.now() + ttl,
+                    staleUntil: Date.now() + ttl + staleWhileRevalidateMs,
+                });
+                evictIfNeeded(maxEntries);
+            }
             return value;
         } finally {
-            inflight.delete(key);
+            if (inflight.get(key) === task) inflight.delete(key);
         }
-    })();
+    });
 
     inflight.set(key, task);
     return task;

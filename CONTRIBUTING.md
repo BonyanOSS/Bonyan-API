@@ -31,11 +31,15 @@ Use `pnpm lint` only when you intentionally want ESLint and Prettier to apply fi
 
 Every upstream source should:
 
-- Use `fetchWithTimeout`.
+- Use `fetchJson` for JSON so deadlines include body parsing; `fetchWithTimeout` for HEAD probes.
 - Map to the canonical types in `src/types/Items.ts`.
 - Preserve the same public response shape as other sources.
 - Set `apiName` to the actual source used.
 - Have a focused test for fallback behavior.
+- Match approved content in `SOURCES.md`; never assume two providers' IDs mean the same thing.
+- Reject partial catalogues, duplicate references and placeholder text. Omit unavailable optional metadata.
+- Register adapters in `scripts/check-upstreams.ts`; run live checks separately from network-free tests.
+- Validate changed response shapes against `openapi.yaml`.
 
 ## Commit Style
 

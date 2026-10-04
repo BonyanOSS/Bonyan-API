@@ -5,7 +5,8 @@
  */
 
 import { FastifyReply, FastifyRequest } from 'fastify';
-import { getRadioContent } from './reciters.service.js';
+import { getRadioContent, resolveReciterAudio } from './reciters.service.js';
+import { parseInteger } from '../../utils/validation.js';
 import { normalizeArabic } from '../../utils/arabic.js';
 import { fail, ok, unavailable } from '../../utils/http.js';
 
@@ -19,8 +20,8 @@ export async function getRadio(_req: FastifyRequest, reply: FastifyReply) {
 }
 
 export async function getReciterById(req: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
-    const id = parseInt(req.params.id, 10);
-    if (Number.isNaN(id)) return fail(reply, 400, 'Invalid reciter id');
+    const id = parseInteger(req.params.id);
+    if (Number.isNaN(id) || id < 1) return fail(reply, 400, 'Invalid reciter id');
 
     try {
         const data = await getRadioContent();
@@ -32,11 +33,16 @@ export async function getReciterById(req: FastifyRequest<{ Params: { id: string 
     }
 }
 
-export async function getReciterSurah(req: FastifyRequest<{ Params: { id: string; surah: string } }>, reply: FastifyReply) {
-    const reciterId = parseInt(req.params.id, 10);
-    const surahNum = parseInt(req.params.surah, 10);
+export async function getReciterSurah(
+    req: FastifyRequest<{ Params: { id: string; surah: string }; Querystring: { moshaf?: string } }>,
+    reply: FastifyReply,
+) {
+    const reciterId = parseInteger(req.params.id);
+    const surahNum = parseInteger(req.params.surah);
+    const moshafId = req.query.moshaf === undefined ? undefined : parseInteger(req.query.moshaf);
+    if (moshafId !== undefined && (Number.isNaN(moshafId) || moshafId < 1)) return fail(reply, 400, 'Invalid moshaf id');
 
-    if (Number.isNaN(reciterId)) return fail(reply, 400, 'Invalid reciter id');
+    if (Number.isNaN(reciterId) || reciterId < 1) return fail(reply, 400, 'Invalid reciter id');
     if (Number.isNaN(surahNum) || surahNum < 1 || surahNum > 114) {
         return fail(reply, 400, 'Invalid surah number. Must be between 1 and 114');
     }
@@ -46,21 +52,9 @@ export async function getReciterSurah(req: FastifyRequest<{ Params: { id: string
         const reciter = data.reciters.find((r) => r.id === reciterId);
 
         if (!reciter) return fail(reply, 404, 'Reciter not found');
-        if (!reciter.moshaf || reciter.moshaf.length === 0) {
-            return fail(reply, 404, 'No moshaf available for this reciter');
-        }
-
-        const moshafItem = reciter.moshaf[0];
-        if (!moshafItem?.server) return fail(reply, 404, 'Server information not available for this reciter');
-
-        const surah = surahNum.toString().padStart(3, '0');
-        const audio = `${moshafItem.server}${surah}.mp3`;
-
-        return ok(reply, {
-            reciter: reciter.name,
-            surah: surahNum,
-            audio,
-        });
+        const audio = await resolveReciterAudio(reciter, surahNum, moshafId);
+        if (!audio) return fail(reply, 404, 'This surah is not available in the requested recording');
+        return ok(reply, audio);
     } catch (err) {
         return unavailable(reply, err);
     }

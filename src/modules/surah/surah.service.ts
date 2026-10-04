@@ -4,72 +4,45 @@
  * MIT License
  */
 
-import type { ApiFunction, Mp3QuranSurahResponse, AlQuranSurahResponse, QuranComChaptersResponse } from '@/src/types/Api.js';
-import type { SurahItem } from '@/src/types/Items.js';
-import { fetchWithTimeout } from '../../utils/fallback.js';
+import type { ApiFunction, Mp3QuranSurahResponse, AlQuranSurahResponse, QuranComChaptersResponse } from '../../types/Api.js';
+import type { SurahItem, SurahApiSource } from '../../types/Items.js';
+import { fetchJson, runWithFallback } from '../../utils/fallback.js';
 import { memoize } from '../../utils/cache.js';
+import { positiveInteger, requiredText } from '../../utils/validation.js';
+import { SURAH_METADATA } from './surah.metadata.js';
+
+function canonical(rows: { id: number; name: string }[], apiName: SurahApiSource): SurahItem[] {
+    if (rows.length !== 114 || new Set(rows.map((r) => r.id)).size !== 114) throw new Error('Incomplete surah catalogue');
+    for (const row of rows) {
+        const id = positiveInteger(row.id);
+        if (id > 114) throw new Error('Invalid surah id');
+        requiredText(row.name);
+    }
+    return SURAH_METADATA.map(({ id, name, makkia }) => ({ id, name, makkia, apiName }));
+}
 
 export const surahApis: ApiFunction<SurahItem>[] = [
     async () => {
-        const res = await fetchWithTimeout('https://www.mp3quran.net/api/v3/suwar');
-        if (!res.ok) throw new Error('mp3quran.net suwar failed');
-
-        const json = (await res.json()) as Mp3QuranSurahResponse;
-
-        return json.suwar.map((s) => ({
-            id: s.id,
-            name: s.name,
-            makkia: s.makkia === 1 ? true : s.makkia === 0 ? false : undefined,
-            apiName: 'mp3quran.net' as const,
-        }));
+        const json = await fetchJson<Mp3QuranSurahResponse>('https://www.mp3quran.net/api/v3/suwar');
+        return canonical(json.suwar, 'mp3quran.net');
     },
-
     async () => {
-        const res = await fetchWithTimeout('https://api.alquran.cloud/v1/surah');
-        if (!res.ok) throw new Error('alquran.cloud surah failed');
-
-        const json = (await res.json()) as AlQuranSurahResponse;
-
-        return json.data.map((s) => ({
-            id: s.id,
-            name: s.name,
-            makkia: s.revelationType.toLowerCase() === 'meccan',
-            apiName: 'alquran.cloud' as const,
-        }));
+        const json = await fetchJson<AlQuranSurahResponse>('https://api.alquran.cloud/v1/surah');
+        return canonical(
+            json.data.map((s) => ({ id: s.number, name: s.name })),
+            'alquran.cloud',
+        );
     },
-
     async () => {
-        const res = await fetchWithTimeout('https://api.quran.com/api/v4/chapters?language=ar');
-        if (!res.ok) throw new Error('quran.com chapters failed');
-
-        const json = (await res.json()) as QuranComChaptersResponse;
-
-        return json.chapters.map((c) => ({
-            id: c.id,
-            name: c.name_arabic,
-            makkia: c.revelation_place.toLowerCase() === 'makkah',
-            apiName: 'quran.com' as const,
-        }));
+        const json = await fetchJson<QuranComChaptersResponse>('https://api.quran.com/api/v4/chapters?language=ar');
+        return canonical(
+            json.chapters.map((c) => ({ id: c.id, name: c.name_arabic })),
+            'quran.com',
+        );
     },
+    async () => SURAH_METADATA.map(({ id, name, makkia }) => ({ id, name, makkia, apiName: 'local' })),
 ];
 
-export async function fetchWithFallback<T>(apis: ApiFunction<T>[]): Promise<T[]> {
-    let lastError: Error | null = null;
-
-    for (const api of apis) {
-        try {
-            const result = await api();
-            if (result.length > 0) return result;
-        } catch (err) {
-            lastError = err instanceof Error ? err : new Error('Unknown error');
-        }
-    }
-
-    if (lastError) throw lastError;
-    return [];
-}
-
 export async function getSurahContent(): Promise<{ surah: SurahItem[] }> {
-    const surah = await memoize('surah:all', () => fetchWithFallback(surahApis), { ttlMs: 1000 * 60 * 60 * 12 });
-    return { surah };
+    return { surah: await memoize('surah:all', () => runWithFallback(surahApis), { ttlMs: 1000 * 60 * 60 * 12 }) };
 }

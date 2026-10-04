@@ -4,7 +4,7 @@
  * MIT License
  */
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import Fastify from 'fastify';
 import recitersRoutes from '../src/modules/reciters/reciters.route';
 
@@ -12,6 +12,10 @@ describe('Reciters Controller', () => {
     const app = Fastify();
 
     beforeAll(async () => {
+        vi.mocked(fetch).mockImplementation(async (_url, init) => {
+            if (init?.method === 'HEAD') return new Response(null, { headers: { 'content-type': 'audio/mpeg' } });
+            throw new Error('Primary source unavailable');
+        });
         await app.register(recitersRoutes);
         await app.ready();
     });

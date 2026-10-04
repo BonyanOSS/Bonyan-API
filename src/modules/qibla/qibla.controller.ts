@@ -9,6 +9,7 @@ import { getQibla } from './qibla.service.js';
 import { fail, ok, unavailable } from '../../utils/http.js';
 
 export async function qiblaDirection(req: FastifyRequest<{ Querystring: { latitude?: string; longitude?: string } }>, reply: FastifyReply) {
+    if (!req.query.latitude?.trim() || !req.query.longitude?.trim()) return fail(reply, 400, 'latitude and longitude are required');
     const lat = Number(req.query.latitude);
     const lng = Number(req.query.longitude);
 
