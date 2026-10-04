@@ -4,14 +4,14 @@
  * MIT License
  */
 
-import { FastifyReply, FastifyRequest } from 'fastify';
+import { type HttpReply, type HttpRequest } from '../../http/types.js';
 import { getAyatContent } from './ayat.service.js';
 import type { AyaItem } from '@/src/types/Items.js';
 import { normalizeArabicForQuranSearch } from '../../utils/arabic.js';
 import { fail, ok, unavailable } from '../../utils/http.js';
 import { parseInteger } from '../../utils/validation.js';
 
-export async function getAllAyat(_req: FastifyRequest, reply: FastifyReply) {
+export async function getAllAyat(_req: HttpRequest, reply: HttpReply) {
     try {
         const data = await getAyatContent();
         return ok(reply, data);
@@ -20,7 +20,7 @@ export async function getAllAyat(_req: FastifyRequest, reply: FastifyReply) {
     }
 }
 
-export async function getAyatById(req: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
+export async function getAyatById(req: HttpRequest<{ Params: { id: string } }>, reply: HttpReply) {
     const id = parseInteger(req.params.id);
     if (Number.isNaN(id)) return fail(reply, 400, 'Invalid Aya ID');
     if (id < 1 || id > 6236) return fail(reply, 400, 'ID must be between 1 and 6236');
@@ -37,7 +37,7 @@ export async function getAyatById(req: FastifyRequest<{ Params: { id: string } }
     }
 }
 
-export async function getAyatBySurah(req: FastifyRequest<{ Params: { surah: string; id: string } }>, reply: FastifyReply) {
+export async function getAyatBySurah(req: HttpRequest<{ Params: { surah: string; id: string } }>, reply: HttpReply) {
     const surahNum = parseInteger(req.params.surah);
     const ayaNum = parseInteger(req.params.id);
 
@@ -61,7 +61,7 @@ export async function getAyatBySurah(req: FastifyRequest<{ Params: { surah: stri
     }
 }
 
-export async function getAyatByText(req: FastifyRequest<{ Querystring: { text?: string; limit?: string } }>, reply: FastifyReply) {
+export async function getAyatByText(req: HttpRequest<{ Querystring: { text?: string; limit?: string } }>, reply: HttpReply) {
     const text = req.query.text?.trim();
     if (!text) return fail(reply, 400, 'Query parameter "text" is required');
 

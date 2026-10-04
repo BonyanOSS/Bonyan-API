@@ -3,15 +3,10 @@ main = "src/worker.ts"
 compatibility_date = "2026-10-04"
 compatibility_flags = ["nodejs_compat"]
 
-[[containers]]
-class_name = "BonyanApiContainer"
-image = "./Dockerfile"
-max_instances = 3
-
-[[durable_objects.bindings]]
-name = "BONYAN_API"
-class_name = "BonyanApiContainer"
-
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["BonyanApiContainer"]
+
+[[migrations]]
+tag = "v2"
+deleted_classes = ["BonyanApiContainer"]

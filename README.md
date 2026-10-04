@@ -27,18 +27,22 @@ The default address is `http://localhost:3000`. Configuration names are listed i
 
 ### Cloudflare Workers
 
-This is a Fastify API deployed through a Cloudflare Container, not a static Pages site and not a Fastify process inside the Workers runtime. The repository includes `wrangler.toml`, `src/worker.ts` and the existing `Dockerfile`. In Cloudflare Workers Builds use:
+The Cloudflare entrypoint uses native `Request` and `Response` handlers. It runs on Workers Free without Containers, Docker or a paid plan. The Node.js entrypoint still uses Fastify; both adapters share the same controllers and route definitions.
+
+In Cloudflare Workers Builds use:
 
 ```text
 Build command: pnpm run build
 Deploy command: pnpm run deploy:cloudflare
 ```
 
-Set production variables and secrets in the Worker and container settings. Do not upload `.env`. Cloudflare Containers require a Workers Paid plan and build the existing Docker image. For a local deployment, run `pnpm build` before `pnpm deploy:cloudflare`; local container development requires Docker.
+Set production variables and secrets in the Worker settings. Do not upload `.env`. Local development uses `pnpm exec wrangler dev`; deployment uses `pnpm deploy:cloudflare`.
 
-Use `pnpm run deploy:cloudflare` in the production Workers Build. The repository script pins the local Wrangler binary and explicitly selects `wrangler.toml`. To test a branch before production, connect a separate staging Worker or Wrangler environment and run a full deploy there. `wrangler versions upload` uploads Worker code only; it does not build or roll out container images or provide a full container preview.
+CI validates every documented response against OpenAPI for both HTTP adapters, starts the Worker in workerd and requests its health, readiness, routing and CORS endpoints. The Docker smoke test verifies the optional Node.js deployment separately. Worker initialization performs no asynchronous I/O and does not import Fastify.
 
-CI runs `pnpm cloudflare:startup` to execute the Worker in workerd, then builds the Docker image and requests `/health` from its Node.js server. A successful `tsc` build or Wrangler dry run alone does not validate Worker startup. Keep Fastify initialization in `src/server.ts` inside the container; awaiting it at module scope in `src/worker.ts` can cause `Top-level await in module is unsettled` during deployment.
+The `v2` Durable Object migration retires the unused class from the earlier Container deployment. Keep the migration history when updating an existing Worker. Roll back code by redeploying the previous native Worker revision; restoring the Container version would require the paid plan and a new class migration.
+
+Workers Free currently allows 100,000 requests per day, 10 ms CPU per invocation and 50 external subrequests. Network waiting does not count toward CPU time. Large cold Quran or hadith responses still need testing under production load. Cache values and rate-limit counters are local to each Worker isolate; they are not a global quota. Inflight I/O is confined to its request, and stale refreshes use `waitUntil`. See [Cloudflare limits](https://developers.cloudflare.com/workers/platform/limits/).
 
 ## API
 
@@ -83,7 +87,7 @@ Ordered chains and source policy are in [SOURCES.md](SOURCES.md). Adapters valid
 - Reciter IDs remain MP3Quran IDs. A bundled snapshot retains 241 identities and recording coverage during catalogue outages. Refresh it deliberately when the source changes.
 - Audio fallback covers nine verified Hafs murattal recordings. Narrator, narration and style remain the same; the recording file may differ. Unavailable chapters return 404; failed eligible sources return 503.
 - Tafsir is restricted to `muyassar` and `saadi`; response editions must match requests.
-- Both azkar adapters cover 132 Hisn chapters. Missing structured metadata such as `count` is omitted. Item IDs are chapter-local positions, not permanent cross-source identities.
+- Both azkar hosts serve the same pinned corpus of 132 Hisn chapters, using one request per host. Missing structured metadata such as `count` is omitted. Item IDs are chapter-local positions, not permanent cross-source identities.
 - Hadith uses a pinned collection across two hosts. `available` counts records, not the largest number. Inclusive ranges can contain gaps and accept at most 300 requested numbers. Random selection chooses an existing record.
 - Coordinate-based prayer has an offline calculation. Algorithms/rounding can differ by minutes; polar conditions may remain unavailable. Calculated times are not a local mosque timetable.
 - Both calendar sources use Umm al-Qura and return `calendar: "islamic-umalqura"`; this does not determine local moon sightings. Qibla has an offline bearing calculation.

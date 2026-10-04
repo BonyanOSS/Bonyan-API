@@ -4,6 +4,8 @@
  * MIT License
  */
 
+import { AsyncLocalStorage } from 'node:async_hooks';
+
 interface CacheEntry<T> {
     value: T;
     expiresAt: number;
@@ -12,6 +14,12 @@ interface CacheEntry<T> {
 
 const store = new Map<string, CacheEntry<unknown>>();
 const inflight = new Map<string, Promise<unknown>>();
+let generation = 0;
+const cacheContext = new AsyncLocalStorage<{ inflight: Map<string, Promise<unknown>>; waitUntil: (task: Promise<unknown>) => void }>();
+
+export function withCacheContext<T>(waitUntil: (task: Promise<unknown>) => void, run: () => T): T {
+    return cacheContext.run({ inflight: new Map(), waitUntil }, run);
+}
 
 export interface MemoizeOptions {
     ttlMs?: number;
@@ -28,38 +36,45 @@ export async function memoize<T>(key: string, loader: () => Promise<T>, options:
     const cached = store.get(key) as CacheEntry<T> | undefined;
     if (cached && cached.expiresAt > now) return cached.value;
     if (cached && cached.staleUntil > now) {
-        void refresh(key, loader, ttl, staleWhileRevalidateMs, maxEntries).catch(() => undefined);
+        const task = refresh(key, loader, ttl, staleWhileRevalidateMs, maxEntries).catch(() => undefined);
+        cacheContext.getStore()?.waitUntil(task);
         return cached.value;
     }
 
-    const existing = inflight.get(key) as Promise<T> | undefined;
+    const existing = (cacheContext.getStore()?.inflight ?? inflight).get(key) as Promise<T> | undefined;
     if (existing) return existing;
 
     return refresh(key, loader, ttl, staleWhileRevalidateMs, maxEntries);
 }
 
 export function invalidate(key: string): void {
+    generation++;
     store.delete(key);
     inflight.delete(key);
+    cacheContext.getStore()?.inflight.delete(key);
 }
 
 export function clearCache(): void {
+    generation++;
     store.clear();
     inflight.clear();
+    cacheContext.getStore()?.inflight.clear();
 }
 
 export function getCacheStats(): { entries: number; inflight: number } {
-    return { entries: store.size, inflight: inflight.size };
+    return { entries: store.size, inflight: (cacheContext.getStore()?.inflight ?? inflight).size };
 }
 
 function refresh<T>(key: string, loader: () => Promise<T>, ttl: number, staleWhileRevalidateMs: number, maxEntries: number): Promise<T> {
-    const existing = inflight.get(key) as Promise<T> | undefined;
+    const active = cacheContext.getStore()?.inflight ?? inflight;
+    const startedGeneration = generation;
+    const existing = active.get(key) as Promise<T> | undefined;
     if (existing) return existing;
 
     const task = Promise.resolve().then(async () => {
         try {
             const value = await loader();
-            if (inflight.get(key) === task) {
+            if (active.get(key) === task && startedGeneration === generation) {
                 store.set(key, {
                     value,
                     expiresAt: Date.now() + ttl,
@@ -69,11 +84,11 @@ function refresh<T>(key: string, loader: () => Promise<T>, ttl: number, staleWhi
             }
             return value;
         } finally {
-            if (inflight.get(key) === task) inflight.delete(key);
+            if (active.get(key) === task) active.delete(key);
         }
     });
 
-    inflight.set(key, task);
+    active.set(key, task);
     return task;
 }
 

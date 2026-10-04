@@ -4,13 +4,13 @@
  * MIT License
  */
 
-import { FastifyInstance } from 'fastify';
+import { type RouteRegistrar } from '../../http/types.js';
 import { getSurahById, getSurah, getSurahByName } from './surah.controller.js';
 
-export default async function surahRoutes(fastify: FastifyInstance) {
-    fastify.get('/surah', getSurah);
+export default function surahRoutes(router: RouteRegistrar) {
+    router.get('/surah', getSurah);
 
-    fastify.get('/surah/:id', getSurahById);
+    router.get('/surah/:id', getSurahById);
 
-    fastify.get('/surah/search', getSurahByName);
+    router.get('/surah/search', getSurahByName);
 }

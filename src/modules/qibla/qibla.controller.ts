@@ -4,11 +4,11 @@
  * MIT License
  */
 
-import { FastifyReply, FastifyRequest } from 'fastify';
+import { type HttpReply, type HttpRequest } from '../../http/types.js';
 import { getQibla } from './qibla.service.js';
 import { fail, ok, unavailable } from '../../utils/http.js';
 
-export async function qiblaDirection(req: FastifyRequest<{ Querystring: { latitude?: string; longitude?: string } }>, reply: FastifyReply) {
+export async function qiblaDirection(req: HttpRequest<{ Querystring: { latitude?: string; longitude?: string } }>, reply: HttpReply) {
     if (!req.query.latitude?.trim() || !req.query.longitude?.trim()) return fail(reply, 400, 'latitude and longitude are required');
     const lat = Number(req.query.latitude);
     const lng = Number(req.query.longitude);

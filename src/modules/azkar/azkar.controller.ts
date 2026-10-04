@@ -4,7 +4,7 @@
  * MIT License
  */
 
-import { FastifyReply, FastifyRequest } from 'fastify';
+import { type HttpReply, type HttpRequest } from '../../http/types.js';
 import { getAzkarContent } from './azkar.service.js';
 import { normalizeArabic } from '../../utils/arabic.js';
 import { fail, ok, unavailable } from '../../utils/http.js';
@@ -13,7 +13,7 @@ import type { AzkarItem, AzkarApiSource } from '../../types/Items.js';
 
 type AzkarResult = { category: string; item: AzkarItem; apiName: AzkarApiSource };
 
-export async function getAzkarCategories(_req: FastifyRequest, reply: FastifyReply) {
+export async function getAzkarCategories(_req: HttpRequest, reply: HttpReply) {
     try {
         const data = await getAzkarContent();
         return ok(reply, {
@@ -24,7 +24,7 @@ export async function getAzkarCategories(_req: FastifyRequest, reply: FastifyRep
     }
 }
 
-export async function getAzkarByCategory(req: FastifyRequest<{ Params: { category: string } }>, reply: FastifyReply) {
+export async function getAzkarByCategory(req: HttpRequest<{ Params: { category: string } }>, reply: HttpReply) {
     const target = req.params.category.trim();
     if (!target) return fail(reply, 400, 'Category is required');
 
@@ -40,7 +40,7 @@ export async function getAzkarByCategory(req: FastifyRequest<{ Params: { categor
     }
 }
 
-export async function searchAzkar(req: FastifyRequest<{ Querystring: { text?: string; limit?: string } }>, reply: FastifyReply) {
+export async function searchAzkar(req: HttpRequest<{ Querystring: { text?: string; limit?: string } }>, reply: HttpReply) {
     const text = req.query.text?.trim();
     if (!text) return fail(reply, 400, 'Query parameter "text" is required');
 
@@ -69,7 +69,7 @@ export async function searchAzkar(req: FastifyRequest<{ Querystring: { text?: st
     }
 }
 
-export async function getRandomZekr(_req: FastifyRequest, reply: FastifyReply) {
+export async function getRandomZekr(_req: HttpRequest, reply: HttpReply) {
     try {
         const data = await getAzkarContent();
         const allItems: AzkarResult[] = [];

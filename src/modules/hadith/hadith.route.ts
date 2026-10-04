@@ -4,12 +4,12 @@
  * MIT License
  */
 
-import { FastifyInstance } from 'fastify';
+import { type RouteRegistrar } from '../../http/types.js';
 import { getHadithBook, getHadithBooks, getHadithByNumber, getRandomHadith } from './hadith.controller.js';
 
-export default async function hadithRoutes(fastify: FastifyInstance) {
-    fastify.get('/hadith', getHadithBooks);
-    fastify.get('/hadith/random', getRandomHadith);
-    fastify.get('/hadith/:book', getHadithBook);
-    fastify.get('/hadith/:book/:number', getHadithByNumber);
+export default function hadithRoutes(router: RouteRegistrar) {
+    router.get('/hadith', getHadithBooks);
+    router.get('/hadith/random', getRandomHadith);
+    router.get('/hadith/:book', getHadithBook);
+    router.get('/hadith/:book/:number', getHadithByNumber);
 }

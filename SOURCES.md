@@ -10,7 +10,7 @@ Reviewed on 2026-10-04. Adapters must preserve requested content identity, editi
 | Audio              | MP3Quran recording, Quran.com where explicitly mapped                               | Nine verified Hafs murattal mappings; other recordings have one source |
 | Muyassar           | AlQuran Cloud `ar.muyassar`, QuranEnc `arabic_moyassar`, Quran.com `16`, spa5k      | Reject wrong editions or missing references                            |
 | Saadi              | Quran.com `91`, spa5k                                                               | Unsupported cloud/QuranEnc resources removed                           |
-| Azkar              | Pinned rn0x Hisn mirror, HisnMuslim index plus chapter files                        | Same 132 canonical chapters; missing repetition metadata omitted       |
+| Azkar              | Pinned rn0x Hisn corpus via jsDelivr, same revision on raw GitHub                   | Same 132 canonical chapters; missing repetition metadata omitted       |
 | Hadith             | Pinned gadingnst via jsDelivr, same revision on raw GitHub                          | Nine collections, 38,102 records; two hosts share one data origin      |
 | Prayer coordinates | AlAdhan, local `adhan`                                                              | Same method/timezone; standard Asr; numerical differences possible     |
 | Prayer city        | AlAdhan                                                                             | No offline geocoder                                                    |
@@ -53,7 +53,7 @@ Prayer permits AlAdhan IDs `1,2,3,4,5,9,10,11`, with local equivalents. IDs `0` 
 
 JSON deadlines include body parsing. Default 8 seconds; Quran 20; tafsir requests 12 (mirror 15); Hisn mirror 12; prayer 10. Full hadith books allow 30 seconds per host. Bukhari is about 13.4 MB uncompressed and previously exceeded a 20-second deadline. A cold request can take about 60 seconds if both hosts are slow. Successful books cache for 12 hours.
 
-Official Hisn has a 20-second overall abort signal, 8-second request deadlines, and six workers fetching 132 chapters after the index. The audit uses three concurrent adapter checks. Quran/tafsir/azkar cache 24 hours, surahs 12 hours, reciters one hour, audio 15 minutes, prayer one hour, calendar seven days, Qibla 30 days. `CACHE_MAX_ENTRIES` defaults to 1,000. Concurrent loads are coalesced; invalidated older loads cannot overwrite newer results.
+The former HisnMuslim index-and-chapter fallback required 133 requests, exceeding Workers Free's 50-subrequest limit. Both current azkar adapters request the same pinned corpus once from independent hosts; they share one data origin and omit unavailable repetition metadata. The audit uses three concurrent adapter checks. Quran/tafsir/azkar cache 24 hours, surahs 12 hours, reciters one hour, audio 15 minutes, prayer one hour, calendar seven days, Qibla 30 days. `CACHE_MAX_ENTRIES` defaults to 1,000. Concurrent loads are coalesced within each Worker request (process-wide on Node.js); invalidated older loads cannot overwrite newer results.
 
 ## Licenses and permissions
 

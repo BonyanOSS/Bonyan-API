@@ -4,13 +4,13 @@
  * MIT License
  */
 
-import { FastifyReply, FastifyRequest } from 'fastify';
+import { type HttpReply, type HttpRequest } from '../../http/types.js';
 import { getSurahContent } from './surah.service.js';
 import { normalizeArabic } from '../../utils/arabic.js';
 import { fail, ok, unavailable } from '../../utils/http.js';
 import { parseInteger } from '../../utils/validation.js';
 
-export async function getSurah(_req: FastifyRequest, reply: FastifyReply) {
+export async function getSurah(_req: HttpRequest, reply: HttpReply) {
     try {
         const data = await getSurahContent();
         return ok(reply, data);
@@ -19,7 +19,7 @@ export async function getSurah(_req: FastifyRequest, reply: FastifyReply) {
     }
 }
 
-export async function getSurahById(req: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
+export async function getSurahById(req: HttpRequest<{ Params: { id: string } }>, reply: HttpReply) {
     const id = parseInteger(req.params.id);
     if (Number.isNaN(id) || id < 1 || id > 114) return fail(reply, 400, 'Surah id must be between 1 and 114');
 
@@ -33,7 +33,7 @@ export async function getSurahById(req: FastifyRequest<{ Params: { id: string } 
     }
 }
 
-export async function getSurahByName(req: FastifyRequest<{ Querystring: { name?: string } }>, reply: FastifyReply) {
+export async function getSurahByName(req: HttpRequest<{ Querystring: { name?: string } }>, reply: HttpReply) {
     const name = req.query.name?.trim();
     if (!name) return fail(reply, 400, 'Query parameter "name" is required');
 

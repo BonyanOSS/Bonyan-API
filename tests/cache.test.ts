@@ -5,10 +5,59 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { memoize, invalidate, clearCache } from '../src/utils/cache';
+import { memoize, invalidate, clearCache, withCacheContext } from '../src/utils/cache';
 
 describe('memoize', () => {
     beforeEach(() => clearCache());
+
+    it('isolates pending I/O between Worker requests while sharing settled values', async () => {
+        const loader = vi.fn(async () => 42);
+        const waitUntil = vi.fn();
+        const first = withCacheContext(waitUntil, () => Promise.all([memoize('worker', loader), memoize('worker', loader)]));
+        const second = withCacheContext(waitUntil, () => memoize('worker', loader));
+        expect(await first).toEqual([42, 42]);
+        expect(await second).toBe(42);
+        expect(loader).toHaveBeenCalledTimes(2);
+        await withCacheContext(waitUntil, () => memoize('worker', loader));
+        expect(loader).toHaveBeenCalledTimes(2);
+    });
+
+    it('extends a stale refresh lifetime with the Worker context', async () => {
+        await memoize('stale', async () => 'old', { ttlMs: -1, staleWhileRevalidateMs: 60_000 });
+        const tasks: Promise<unknown>[] = [];
+        const value = await withCacheContext(
+            (task) => tasks.push(task),
+            () => memoize('stale', async () => 'new'),
+        );
+        expect(value).toBe('old');
+        expect(tasks).toHaveLength(1);
+        await Promise.all(tasks);
+        expect(await memoize('stale', async () => 'unexpected')).toBe('new');
+    });
+
+    it('does not restore invalidated data from another Worker request', async () => {
+        let finishOld!: (value: string) => void;
+        const old = withCacheContext(
+            () => {},
+            () =>
+                memoize(
+                    'worker-race',
+                    () =>
+                        new Promise<string>((resolve) => {
+                            finishOld = resolve;
+                        }),
+                ),
+        );
+        await Promise.resolve();
+        invalidate('worker-race');
+        await withCacheContext(
+            () => {},
+            () => memoize('worker-race', async () => 'new'),
+        );
+        finishOld('old');
+        await old;
+        expect(await memoize('worker-race', async () => 'unexpected')).toBe('new');
+    });
 
     it('caches the loader result for subsequent calls', async () => {
         const loader = vi.fn(async () => ({ value: 1 }));

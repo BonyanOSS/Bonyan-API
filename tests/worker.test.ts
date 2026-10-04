@@ -4,85 +4,94 @@
  * MIT License
  */
 
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { buildApp } from '../src/app';
+import { createWorkerApp } from '../src/http/worker-app';
+import { clearCache } from '../src/utils/cache';
 
-vi.mock('cloudflare:workers', () => ({
-    DurableObject: class {
-        constructor(protected ctx: unknown) {}
-    },
-}));
+let node: Awaited<ReturnType<typeof buildApp>>;
+let worker: ReturnType<typeof createWorkerApp>;
+beforeEach(async () => {
+    clearCache();
+    node = await buildApp({ logger: false });
+    worker = createWorkerApp();
+});
+afterEach(async () => {
+    await node.close();
+    clearCache();
+    vi.unstubAllEnvs();
+    vi.useRealTimers();
+});
 
-import { BonyanApiContainer } from '../src/worker.js';
-
-function createContainer(running = false) {
-    const port = { fetch: vi.fn().mockImplementation(async () => new Response('ok')) };
-    const container = {
-        running,
-        start: vi.fn(() => {
-            container.running = true;
-        }),
-        setInactivityTimeout: vi.fn().mockResolvedValue(undefined),
-        getTcpPort: vi.fn(() => port),
-    };
-    const object = new BonyanApiContainer({ container } as unknown as DurableObjectState, {});
-    return { object, container, port };
+async function request(path: string, init: RequestInit = {}, env: Record<string, string> = {}) {
+    return worker.fetch(new Request('https://api.example' + path, init), env);
 }
 
-afterEach(() => vi.useRealTimers());
+describe('native Worker HTTP adapter', () => {
+    it.each(['/surah/search', '/reciters/search', '/ayat/search', '/azkar/search', '/hadith/random', '/surah/1abc', '/unknown'])(
+        'preserves static route precedence and error envelopes for %s',
+        async (path) => {
+            const expected = await node.inject(path);
+            const response = await request(path);
+            expect(response.status).toBe(expected.statusCode);
+            const body = await response.json();
+            expect(body).toMatchObject({ success: false, message: expected.json().message, error: { code: expected.json().error.code } });
+        },
+    );
 
-describe('container request readiness', () => {
-    it('waits for readiness before forwarding concurrent requests', async () => {
-        const { object, container, port } = createContainer();
-        let resolveReady!: (response: Response) => void;
-        port.fetch.mockImplementationOnce(
-            () =>
-                new Promise<Response>((resolve) => {
-                    resolveReady = resolve;
-                }),
-        );
-
-        const first = new Request('https://api.example/health');
-        const second = new Request('https://api.example/ready');
-        const requests = [object.fetch(first), object.fetch(second)];
-        await vi.waitFor(() => expect(port.fetch).toHaveBeenCalledTimes(1));
-        expect(container.start).toHaveBeenCalledTimes(1);
-        expect(port.fetch.mock.calls[0]?.[0]).toBe('http://container/ready');
-
-        resolveReady(new Response('ready'));
-        await Promise.all(requests);
-        expect(port.fetch).toHaveBeenCalledWith(first);
-        expect(port.fetch).toHaveBeenCalledWith(second);
+    it('decodes Arabic path segments and prioritizes search over ID routes', async () => {
+        const path = '/surah/search?name=' + encodeURIComponent('الفاتحة');
+        const expected = await node.inject(path);
+        const response = await request(path);
+        expect(response.status).toBe(200);
+        expect(await response.json()).toEqual(expected.json());
     });
 
-    it('checks an existing container and reapplies its inactivity timeout', async () => {
-        const { object, container, port } = createContainer(true);
-        await object.fetch(new Request('https://api.example/health'));
-        expect(container.start).not.toHaveBeenCalled();
-        expect(container.setInactivityTimeout).toHaveBeenCalledWith(600_000);
-        expect(port.fetch.mock.calls[0]?.[0]).toBe('http://container/ready');
+    it('retains case-sensitive routes and rejects malformed URL encoding', async () => {
+        expect((await request('/HEALTH')).status).toBe(404);
+        expect((await request('/azkar/%E0%A4%A')).status).toBe(400);
+        expect((await request('/surah/')).status).toBe((await node.inject('/surah/')).statusCode);
     });
 
-    it('rechecks readiness after a stopped container restarts', async () => {
-        const { object, container, port } = createContainer();
-        await object.fetch(new Request('https://api.example/health'));
-        container.running = false;
-        await object.fetch(new Request('https://api.example/health'));
-        expect(container.start).toHaveBeenCalledTimes(2);
-        expect(port.fetch.mock.calls.filter(([input]) => input === 'http://container/ready')).toHaveLength(2);
+    it('preserves repeated query parameters instead of silently selecting a value', async () => {
+        const path = '/qibla?latitude=24&latitude=25&longitude=46';
+        const expected = await node.inject(path);
+        const response = await request(path);
+        expect(response.status).toBe(expected.statusCode);
+        expect(await response.json()).toMatchObject({ message: expected.json().message });
     });
 
-    it('times out without forwarding and allows a later request to retry', async () => {
+    it('returns HEAD headers with an empty response body', async () => {
+        const response = await request('/health', { method: 'HEAD' });
+        expect(response.status).toBe(200);
+        expect(response.headers.get('content-type')).toContain('application/json');
+        expect(await response.text()).toBe('');
+        expect((await request('/health', { method: 'POST' })).status).toBe(404);
+    });
+
+    it('reflects allowed CORS origins and handles preflight', async () => {
+        const headers = { origin: 'https://client.example', 'access-control-request-method': 'GET', 'access-control-request-headers': 'x-test' };
+        const response = await request('/health', { method: 'OPTIONS', headers }, { CORS_ORIGIN: 'https://client.example' });
+        expect(response.status).toBe(204);
+        expect(response.headers.get('access-control-allow-origin')).toBe(headers.origin);
+        expect(response.headers.get('access-control-allow-headers')).toBe('x-test');
+        expect(response.headers.get('vary')).toContain('Access-Control-Request-Headers');
+        const denied = await request('/health', { headers: { origin: 'https://other.example' } }, { CORS_ORIGIN: headers.origin });
+        expect(denied.headers.has('access-control-allow-origin')).toBe(false);
+        expect((await request('/health', { method: 'OPTIONS' })).status).toBe(400);
+    });
+
+    it('limits each client IP and resets after the configured window', async () => {
         vi.useFakeTimers();
-        const { object, port } = createContainer();
-        port.fetch.mockRejectedValue(new Error('connection refused'));
-        const request = new Request('https://api.example/health');
-        const pending = expect(object.fetch(request)).rejects.toThrow('did not become ready');
-        await vi.advanceTimersByTimeAsync(30_000);
-        await pending;
-        expect(port.fetch).not.toHaveBeenCalledWith(request);
-
-        port.fetch.mockResolvedValue(new Response('ok'));
-        await object.fetch(request);
-        expect(port.fetch).toHaveBeenCalledWith(request);
+        const env = { RATE_LIMIT_MAX: '1', RATE_LIMIT_WINDOW: '2 seconds' };
+        const init = { headers: { 'cf-connecting-ip': '192.0.2.1' } };
+        expect((await request('/health', init, env)).status).toBe(200);
+        const limited = await request('/health', init, env);
+        expect(limited.status).toBe(429);
+        expect(limited.headers.get('retry-after')).toBe('2');
+        expect(await limited.json()).toMatchObject({ error: { code: 'RATE_LIMITED' } });
+        expect((await request('/health', { headers: { 'cf-connecting-ip': '192.0.2.2' } }, env)).status).toBe(200);
+        vi.advanceTimersByTime(2000);
+        expect((await request('/health', init, env)).status).toBe(200);
     });
 });

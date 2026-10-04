@@ -4,9 +4,9 @@
  * MIT License
  */
 
-import { FastifyInstance } from 'fastify';
+import { type RouteRegistrar } from '../../http/types.js';
 import { getTimings } from './prayer.controller.js';
 
-export default async function prayerRoutes(fastify: FastifyInstance) {
-    fastify.get('/prayer/times', getTimings);
+export default function prayerRoutes(router: RouteRegistrar) {
+    router.get('/prayer/times', getTimings);
 }

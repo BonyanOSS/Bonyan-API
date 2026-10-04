@@ -4,11 +4,11 @@
  * MIT License
  */
 
-import { FastifyInstance } from 'fastify';
+import { type RouteRegistrar } from '../../http/types.js';
 import { convertGregorianToHijri, convertHijriToGregorian, getToday } from './hijri.controller.js';
 
-export default async function hijriRoutes(fastify: FastifyInstance) {
-    fastify.get('/hijri/today', getToday);
-    fastify.get('/hijri/from-gregorian', convertGregorianToHijri);
-    fastify.get('/hijri/to-gregorian', convertHijriToGregorian);
+export default function hijriRoutes(router: RouteRegistrar) {
+    router.get('/hijri/today', getToday);
+    router.get('/hijri/from-gregorian', convertGregorianToHijri);
+    router.get('/hijri/to-gregorian', convertHijriToGregorian);
 }

@@ -4,9 +4,9 @@
  * MIT License
  */
 
-import { FastifyInstance } from 'fastify';
+import { type RouteRegistrar } from '../../http/types.js';
 import { qiblaDirection } from './qibla.controller.js';
 
-export default async function qiblaRoutes(fastify: FastifyInstance) {
-    fastify.get('/qibla', qiblaDirection);
+export default function qiblaRoutes(router: RouteRegistrar) {
+    router.get('/qibla', qiblaDirection);
 }

@@ -4,12 +4,12 @@
  * MIT License
  */
 
-import { FastifyReply, FastifyRequest } from 'fastify';
+import { type HttpReply, type HttpRequest } from '../../http/types.js';
 import { getBook, getHadith, getRandomHadithItem, isSupportedBook, listBooks } from './hadith.service.js';
 import { parseInteger } from '../../utils/validation.js';
 import { fail, ok, unavailable } from '../../utils/http.js';
 
-export async function getHadithBooks(_req: FastifyRequest, reply: FastifyReply) {
+export async function getHadithBooks(_req: HttpRequest, reply: HttpReply) {
     try {
         const books = await listBooks();
         return ok(reply, books);
@@ -18,10 +18,7 @@ export async function getHadithBooks(_req: FastifyRequest, reply: FastifyReply) 
     }
 }
 
-export async function getHadithBook(
-    req: FastifyRequest<{ Params: { book: string }; Querystring: { from?: string; to?: string } }>,
-    reply: FastifyReply,
-) {
+export async function getHadithBook(req: HttpRequest<{ Params: { book: string }; Querystring: { from?: string; to?: string } }>, reply: HttpReply) {
     const bookId = req.params.book.trim();
     if (!bookId) return fail(reply, 400, 'Book id is required');
     if (!isSupportedBook(bookId)) return fail(reply, 404, 'Book not found');
@@ -42,7 +39,7 @@ export async function getHadithBook(
     }
 }
 
-export async function getHadithByNumber(req: FastifyRequest<{ Params: { book: string; number: string } }>, reply: FastifyReply) {
+export async function getHadithByNumber(req: HttpRequest<{ Params: { book: string; number: string } }>, reply: HttpReply) {
     const bookId = req.params.book.trim();
     const number = parseInteger(req.params.number);
     if (!bookId) return fail(reply, 400, 'Book id is required');
@@ -58,7 +55,7 @@ export async function getHadithByNumber(req: FastifyRequest<{ Params: { book: st
     }
 }
 
-export async function getRandomHadith(req: FastifyRequest<{ Querystring: { book?: string } }>, reply: FastifyReply) {
+export async function getRandomHadith(req: HttpRequest<{ Querystring: { book?: string } }>, reply: HttpReply) {
     try {
         const books = await listBooks();
         if (books.length === 0) return fail(reply, 503, 'No hadith books available');
