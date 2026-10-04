@@ -19,7 +19,7 @@ Copy `.env.example` only when creating a new configuration. Keep an existing `.e
 ```sh
 pnpm build
 pnpm start
-docker build -f DOCKERFILE -t bonyan-api .
+docker build -f Dockerfile -t bonyan-api .
 docker run --rm -p 3000:3000 --env-file .env bonyan-api
 ```
 
@@ -27,14 +27,18 @@ The default address is `http://localhost:3000`. Configuration names are listed i
 
 ### Cloudflare Workers
 
-This is an API Worker, not a static Pages site. The repository includes `wrangler.toml` and a `src/worker.ts` entrypoint. In Cloudflare's project settings use:
+This is a Fastify API deployed through a Cloudflare Container, not a static Pages site and not a Fastify process inside the Workers runtime. The repository includes `wrangler.toml`, `src/worker.ts` and the existing `Dockerfile`. In Cloudflare Workers Builds use:
 
 ```text
 Build command: pnpm run build
 Deploy command: pnpm run deploy:cloudflare
 ```
 
-Set production variables and secrets in the Worker settings. Do not upload `.env`. The Worker uses Node.js compatibility for Fastify's HTTP server; Cloudflare documents this integration through `httpServerHandler`. For a local deployment, run `pnpm build` before `pnpm deploy:cloudflare`.
+Set production variables and secrets in the Worker and container settings. Do not upload `.env`. Cloudflare Containers require a Workers Paid plan and build the existing Docker image. For a local deployment, run `pnpm build` before `pnpm deploy:cloudflare`; local container development requires Docker.
+
+Use `pnpm run deploy:cloudflare` in the production Workers Build. The repository script pins the local Wrangler binary and explicitly selects `wrangler.toml`. To test a branch before production, connect a separate staging Worker or Wrangler environment and run a full deploy there. `wrangler versions upload` uploads Worker code only; it does not build or roll out container images or provide a full container preview.
+
+CI runs `pnpm cloudflare:startup` to execute the Worker in workerd, then builds the Docker image and requests `/health` from its Node.js server. A successful `tsc` build or Wrangler dry run alone does not validate Worker startup. Keep Fastify initialization in `src/server.ts` inside the container; awaiting it at module scope in `src/worker.ts` can cause `Top-level await in module is unsettled` during deployment.
 
 ## API
 
