@@ -3,6 +3,7 @@ node_modules
 dist
 coverage/
 fallback-check.json
+.wrangler/
 .env
 .env.*.local
 test/

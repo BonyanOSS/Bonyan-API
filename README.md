@@ -25,6 +25,17 @@ docker run --rm -p 3000:3000 --env-file .env bonyan-api
 
 The default address is `http://localhost:3000`. Configuration names are listed in `.env.example`.
 
+### Cloudflare Workers
+
+This is an API Worker, not a static Pages site. The repository includes `wrangler.toml` and a `src/worker.ts` entrypoint. In Cloudflare's project settings use:
+
+```text
+Build command: pnpm run build
+Deploy command: pnpm run deploy:cloudflare
+```
+
+Set production variables and secrets in the Worker settings. Do not upload `.env`. The Worker uses Node.js compatibility for Fastify's HTTP server; Cloudflare documents this integration through `httpServerHandler`. For a local deployment, run `pnpm build` before `pnpm deploy:cloudflare`.
+
 ## API
 
 [openapi.yaml](openapi.yaml) defines parameters, response schemas and errors. `GET /` lists routes. `/health` checks process liveness; `/ready` reports process readiness and cache counts without checking upstream availability. `/metrics` returns Prometheus text.
