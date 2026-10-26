@@ -2,7 +2,7 @@
 
 All notable changes to Bonyan-API will be documented here.
 
-## Unreleased
+## 2.1.1 (2026-10-26)
 
 - Update Fastify, plugins, dotenv, Cloudflare tooling and the test toolchain; refresh vulnerable transitive dependencies.
 - Keep repeated Worker query parameters in order without copying the accumulated array for each value.

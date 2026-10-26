@@ -1,6 +1,6 @@
 {
     "name": "bonyan-api",
-    "version": "2.1.0",
+    "version": "2.1.1",
     "description": "API for broadcasting the Quran and Islamic supplications, with automatic fallback between multiple sources and a unified data interface (Quran, Tafsir, Azkar, Hadith, Prayer Times, Hijri Date, Qibla)",
     "main": "dist/server.js",
     "type": "module",
