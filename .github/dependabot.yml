@@ -1,0 +1,22 @@
+version: 2
+updates:
+    - package-ecosystem: npm
+      directory: '/'
+      schedule:
+          interval: weekly
+      open-pull-requests-limit: 10
+      groups:
+          runtime:
+              dependency-type: production
+          development:
+              dependency-type: development
+      ignore:
+          # The ESLint parser supports TypeScript <6.1; Node types match runtime.
+          - dependency-name: typescript
+            versions: ['>=6.1.0']
+          - dependency-name: '@types/node'
+            update-types: ['version-update:semver-major']
+    - package-ecosystem: github-actions
+      directory: '/'
+      schedule:
+          interval: monthly

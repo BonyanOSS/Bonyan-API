@@ -133,7 +133,9 @@ export function createWorkerApp() {
                             const query: Record<string, string | string[]> = Object.create(null);
                             for (const [key, value] of url.searchParams) {
                                 const previous = query[key];
-                                query[key] = previous === undefined ? value : Array.isArray(previous) ? [...previous, value] : [previous, value];
+                                if (previous === undefined) query[key] = value;
+                                else if (Array.isArray(previous)) previous.push(value);
+                                else query[key] = [previous, value];
                             }
                             await route.handler({ params, query } satisfies HttpRequest, reply);
                         }

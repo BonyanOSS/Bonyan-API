@@ -6,7 +6,7 @@ Quran text and audio, tafsir, Hisn al-Muslim, hadith collections, prayer times, 
 
 ## Run
 
-Requires Node.js 24 LTS and pnpm 10.33.4.
+Requires Node.js 24 LTS and pnpm 11.28.8. TypeScript stays on 6.0 because the ESLint parser requires `<6.1.0`.
 
 ```sh
 pnpm install --frozen-lockfile

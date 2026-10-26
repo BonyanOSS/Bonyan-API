@@ -2,6 +2,13 @@
 
 All notable changes to Bonyan-API will be documented here.
 
+## Unreleased
+
+- Update Fastify, plugins, dotenv, Cloudflare tooling and the test toolchain; refresh vulnerable transitive dependencies.
+- Keep repeated Worker query parameters in order without copying the accumulated array for each value.
+- Use pnpm 11.28.8 consistently in local development, CI and Docker, including the workspace build policy in the image.
+- Pin CI actions to reviewed commits, audit dependencies on changes and weekly, and configure compatible Dependabot updates.
+
 ## 3.0.0 (2026-10-04)
 
 - Validate source coverage, references and edition identity before accepting/caching data.
