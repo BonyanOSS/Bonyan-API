@@ -1,5 +1,10 @@
 packages:
     - '.'
 
-ignoredBuiltDependencies:
-    - esbuild
+allowBuilds:
+    esbuild: true
+    workerd: true
+
+# Miniflare pins a vulnerable Undici until the next eligible Wrangler release.
+overrides:
+    'miniflare>undici': 7.30.1

@@ -69,6 +69,14 @@ describe('native Worker HTTP adapter', () => {
         expect((await request('/health', { method: 'POST' })).status).toBe(404);
     });
 
+    it('preserves validation with many repeated query values', async () => {
+        const path = '/qibla?longitude=46&' + Array.from({ length: 2000 }, () => 'latitude=24').join('&');
+        const expected = await node.inject(path);
+        const response = await request(path);
+        expect(response.status).toBe(expected.statusCode);
+        expect(await response.json()).toMatchObject({ message: expected.json().message });
+    });
+
     it('reflects allowed CORS origins and handles preflight', async () => {
         const headers = { origin: 'https://client.example', 'access-control-request-method': 'GET', 'access-control-request-headers': 'x-test' };
         const response = await request('/health', { method: 'OPTIONS', headers }, { CORS_ORIGIN: 'https://client.example' });
