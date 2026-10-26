@@ -3,6 +3,7 @@ packages:
 
 allowBuilds:
     esbuild: true
+    workerd: true
 
 # Miniflare pins a vulnerable Undici until the next eligible Wrangler release.
 overrides:
