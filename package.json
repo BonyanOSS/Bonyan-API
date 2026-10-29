@@ -44,7 +44,7 @@
         "fastify": "^5.12.7"
     },
     "devDependencies": {
-        "@cloudflare/workers-types": "^5.20261025.1",
+        "@cloudflare/workers-types": "^5.20261026.1",
         "@eslint/js": "^10.0.1",
         "@types/node": "^24.19.2",
         "@vitest/coverage-v8": "^5.0.5",
@@ -56,10 +56,10 @@
         "prettier": "^3.9.10",
         "tsx": "^4.23.15",
         "typescript": "~6.0.3",
-        "typescript-eslint": "^8.72.0",
+        "typescript-eslint": "^8.72.1",
         "vite": "^8.3.5",
         "vitest": "^5.0.5",
-        "wrangler": "^4.152.0",
+        "wrangler": "^4.153.0",
         "yaml": "^2.9.1"
     },
     "engines": {
