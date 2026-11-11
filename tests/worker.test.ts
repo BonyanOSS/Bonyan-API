@@ -34,6 +34,7 @@ describe('native Worker HTTP adapter', () => {
             const expected = await node.inject(path);
             const response = await request(path);
             expect(response.status).toBe(expected.statusCode);
+
             const body = await response.json();
             expect(body).toMatchObject({ success: false, message: expected.json().message, error: { code: expected.json().error.code } });
         },
@@ -91,6 +92,7 @@ describe('native Worker HTTP adapter', () => {
         expect(response.headers.get('access-control-allow-origin')).toBe(headers.origin);
         expect(response.headers.get('access-control-allow-headers')).toBe('x-test');
         expect(response.headers.get('vary')).toContain('Access-Control-Request-Headers');
+
         const denied = await request('/health', { headers: { origin: 'https://other.example' } }, { CORS_ORIGIN: headers.origin });
         expect(denied.headers.has('access-control-allow-origin')).toBe(false);
         expect((await request('/health', { method: 'OPTIONS' })).status).toBe(400);
@@ -98,9 +100,11 @@ describe('native Worker HTTP adapter', () => {
 
     it('limits each client IP and resets after the configured window', async () => {
         vi.useFakeTimers();
+
         const env = { RATE_LIMIT_MAX: '1', RATE_LIMIT_WINDOW: '2 seconds' };
         const init = { headers: { 'cf-connecting-ip': '192.0.2.1' } };
         expect((await request('/health', init, env)).status).toBe(200);
+
         const limited = await request('/health', init, env);
         expect(limited.status).toBe(429);
         expect(limited.headers.get('retry-after')).toBe('2');

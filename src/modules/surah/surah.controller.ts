@@ -21,12 +21,15 @@ export async function getSurah(_req: HttpRequest, reply: HttpReply) {
 
 export async function getSurahById(req: HttpRequest<{ Params: { id: string } }>, reply: HttpReply) {
     const id = parseInteger(req.params.id);
+
     if (Number.isNaN(id) || id < 1 || id > 114) return fail(reply, 400, 'Surah id must be between 1 and 114');
 
     try {
         const data = await getSurahContent();
         const surah = data.surah.find((s) => s.id === id);
+
         if (!surah) return fail(reply, 404, 'Surah not found');
+
         return ok(reply, surah);
     } catch (err) {
         return unavailable(reply, err);
@@ -35,6 +38,7 @@ export async function getSurahById(req: HttpRequest<{ Params: { id: string } }>,
 
 export async function getSurahByName(req: HttpRequest<{ Querystring: { name?: string } }>, reply: HttpReply) {
     const name = req.query.name?.trim();
+
     if (!name) return fail(reply, 400, 'Query parameter "name" is required');
 
     try {
@@ -43,6 +47,7 @@ export async function getSurahByName(req: HttpRequest<{ Querystring: { name?: st
         const matches = data.surah.filter((r) => normalizeArabic(r.name).includes(search));
 
         if (matches.length === 0) return fail(reply, 404, 'Surah not found');
+
         return ok(reply, matches);
     } catch (err) {
         return unavailable(reply, err);

@@ -17,12 +17,15 @@ export async function fetchJson<T>(input: string, timeoutMs = 8000, signal?: Abo
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     const startedAt = Date.now();
+
     try {
         const response = await fetch(input, {
             signal: signal ? AbortSignal.any([controller.signal, signal]) : controller.signal,
             headers: { Accept: 'application/json' },
         });
+
         if (!response.ok) throw new Error(`Upstream HTTP ${response.status}: ${new URL(input).hostname}`);
+
         const data = await withTimeout(response.json() as Promise<T>, timeoutMs - (Date.now() - startedAt));
         recordUpstreamRequest(input, 'ok', Date.now() - startedAt);
         return data;
@@ -59,7 +62,9 @@ export async function runWithFallback<T>(apis: ApiFn<T>[], options: FallbackOpti
     for (const api of apis) {
         try {
             const result = options.timeoutMs === undefined ? await api() : await withTimeout(api(), options.timeoutMs);
+
             if (!isEmpty(result)) return result;
+
             lastError = new Error('Empty result from source');
         } catch (err) {
             lastError = err instanceof Error ? err : new Error('Unknown error');
@@ -71,12 +76,15 @@ export async function runWithFallback<T>(apis: ApiFn<T>[], options: FallbackOpti
 
 function defaultIsEmpty(result: unknown): boolean {
     if (result === null || result === undefined) return true;
+
     if (Array.isArray(result)) return result.length === 0 || result.every(defaultIsEmpty);
+
     return false;
 }
 
 async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
     let timer: NodeJS.Timeout | undefined;
+
     try {
         return await Promise.race([
             promise,

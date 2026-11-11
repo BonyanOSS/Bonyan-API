@@ -27,6 +27,7 @@ export function recordUpstreamRequest(input: string, result: UpstreamResult, dur
 
     stats.requests += 1;
     stats.totalDurationMs += durationMs;
+
     if (result !== 'ok') stats.failures += 1;
 
     upstreamStats.set(key, stats);

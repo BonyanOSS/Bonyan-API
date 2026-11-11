@@ -8,6 +8,7 @@ import assert from 'node:assert/strict';
 import { unstable_dev, unstable_readConfig } from 'wrangler';
 
 const config = unstable_readConfig({ config: 'wrangler.toml' });
+
 if (!config.main) throw new Error('wrangler.toml must define a Worker entrypoint');
 
 // Bundling alone cannot detect startup errors or runtime-incompatible APIs.
@@ -30,26 +31,33 @@ try {
         assert.equal(response.status, 200);
         assert.equal(((await response.json()) as { status: string }).status, expected);
     }
+
     const catalogue = await worker.fetch('/');
     const body = (await catalogue.json()) as { routes: { method: string; url: string }[] };
     assert.equal(body.routes.filter((r) => r.method === 'GET').length, 27);
+
     const metrics = await worker.fetch('/metrics');
     assert.equal(metrics.status, 200);
     assert.match(await metrics.text(), /bonyan_api_cache_entries/);
+
     const invalid = await worker.fetch('/qibla?latitude=91&longitude=46');
     assert.equal(invalid.status, 400);
     assert.equal(((await invalid.json()) as { success: boolean }).success, false);
+
     const missing = await worker.fetch('/unknown');
     assert.equal(missing.status, 404);
+
     const head = await worker.fetch('/health', { method: 'HEAD' });
     assert.equal(head.status, 200);
     assert.equal(await head.text(), '');
+
     const preflight = await worker.fetch('/health', {
         method: 'OPTIONS',
         headers: { Origin: 'https://client.example', 'Access-Control-Request-Method': 'GET' },
     });
     assert.equal(preflight.status, 204);
     assert.equal(preflight.headers.get('access-control-allow-origin'), 'https://client.example');
+
     if (process.argv.includes('--live')) {
         for (const path of [
             '/surah/1',
@@ -73,6 +81,7 @@ try {
             assert.equal((JSON.parse(text) as { success: boolean }).success, true);
         }
     }
+
     console.log('Native Worker startup, health, routes, validation, HEAD and CORS passed in workerd.');
 } finally {
     await worker.stop();

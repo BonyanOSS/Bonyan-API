@@ -26,24 +26,33 @@ function todayDDMMYYYY(): string {
 
 function parseFloatOpt(value: string | undefined): number | undefined {
     if (value === undefined) return undefined;
+
     const num = value.trim() ? Number(value) : NaN;
     return Number.isFinite(num) ? num : NaN;
 }
 
 export async function getTimings(req: HttpRequest<{ Querystring: PrayerQS }>, reply: HttpReply) {
     const date = req.query.date?.trim() || todayDDMMYYYY();
+
     if (!validGregorianDate(date)) return fail(reply, 400, 'Date must be a valid date in DD-MM-YYYY format');
 
     const lat = parseFloatOpt(req.query.latitude);
     const lng = parseFloatOpt(req.query.longitude);
+
     if (Number.isNaN(lat) || Number.isNaN(lng)) return fail(reply, 400, 'latitude/longitude must be numeric');
 
     if (lat !== undefined && (lat < -90 || lat > 90)) return fail(reply, 400, 'latitude must be in [-90, 90]');
+
     if (lng !== undefined && (lng < -180 || lng > 180)) return fail(reply, 400, 'longitude must be in [-180, 180]');
+
     if ((lat === undefined) !== (lng === undefined)) return fail(reply, 400, 'Provide both latitude and longitude');
+
     const method = req.query.method === undefined ? 4 : parseInteger(req.query.method);
+
     if (!isSupportedMethod(method)) return fail(reply, 400, 'Unsupported method. Use 1, 2, 3, 4, 5, 9, 10 or 11');
+
     const timezone = req.query.timezone?.trim() ?? 'UTC';
+
     try {
         new Intl.DateTimeFormat('en', { timeZone: timezone });
     } catch {

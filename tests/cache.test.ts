@@ -24,6 +24,7 @@ describe('memoize', () => {
 
     it('extends a stale refresh lifetime with the Worker context', async () => {
         await memoize('stale', async () => 'old', { ttlMs: -1, staleWhileRevalidateMs: 60_000 });
+
         const tasks: Promise<unknown>[] = [];
         const value = await withCacheContext(
             (task) => tasks.push(task),
@@ -81,6 +82,7 @@ describe('memoize', () => {
         const loader = vi.fn(async () => Math.random());
         const a = await memoize('rand', loader);
         invalidate('rand');
+
         const b = await memoize('rand', loader);
         expect(loader).toHaveBeenCalledTimes(2);
         expect(a).not.toBe(b);
@@ -123,6 +125,7 @@ describe('memoize', () => {
         );
         await Promise.resolve();
         clearCache();
+
         const loader = vi.fn(
             () =>
                 new Promise<string>((resolve) => {
@@ -133,6 +136,7 @@ describe('memoize', () => {
         await Promise.resolve();
         finishOld('old');
         await old;
+
         const joined = memoize('race', loader);
         finishNew('new');
         expect(await Promise.all([current, joined])).toEqual(['new', 'new']);

@@ -20,29 +20,36 @@ interface Schema {
     $ref?: string;
     [key: string]: unknown;
 }
+
 interface Operation {
     operationId: string;
     responses: Record<string, Schema>;
     parameters?: { in?: string; name?: string; required?: boolean; $ref?: string }[];
 }
+
 interface Specification {
     openapi: string;
     paths: Record<string, { get: Operation }>;
     components: { schemas: Record<string, Schema>; responses: Record<string, Schema>; parameters: Record<string, Schema> };
 }
+
 const spec = parse(readFileSync(new URL('../openapi.yaml', import.meta.url), 'utf8')) as Specification;
 const ajv = new Ajv({ strict: false, allErrors: true });
 const json = (data: unknown) => new Response(JSON.stringify(data), { headers: { 'content-type': 'application/json' } });
+
 function dereference(value: Schema): Schema {
     if (!value.$ref) return value;
+
     return value.$ref
         .slice(2)
         .split('/')
         .reduce((node, key) => (node as Record<string, unknown>)[key], spec as unknown) as Schema;
 }
+
 function validateResponse(path: string, status: number, body: unknown): void {
     const response = spec.paths[path]!.get.responses[String(status)];
     expect(response, 'Missing documented status ' + status + ' for ' + path).toBeDefined();
+
     const content = dereference(response!).content as Record<string, { schema: Schema }>;
     const validate = ajv.compile({ ...content['application/json']!.schema, components: spec.components });
     expect(validate(body), JSON.stringify(validate.errors)).toBe(true);
@@ -50,6 +57,7 @@ function validateResponse(path: string, status: number, body: unknown): void {
 
 async function contractApp(adapter: string) {
     if (adapter === 'node') return buildApp({ logger: false });
+
     const worker = createWorkerApp();
     return {
         async inject(url: string) {
@@ -70,10 +78,14 @@ describe.each(['node', 'worker'])('OpenAPI response contracts (%s)', (adapter) =
         clearCache();
         vi.mocked(fetch).mockImplementation(async (input, init) => {
             if (init?.method === 'HEAD') return new Response(null, { headers: { 'content-type': 'audio/mpeg' } });
+
             const url = new URL(String(input));
+
             if (url.pathname.endsWith('/suwar'))
                 return json({ suwar: SURAH_METADATA.map((s) => ({ id: s.id, name: s.name, makkia: Number(s.makkia) })) });
+
             if (url.pathname.endsWith('/reciters')) return json(snapshot);
+
             if (url.pathname.endsWith('/quran/quran-uthmani'))
                 return json({
                     data: {
@@ -85,8 +97,10 @@ describe.each(['node', 'worker'])('OpenAPI response contracts (%s)', (adapter) =
                         })),
                     },
                 });
+
             if (url.pathname.endsWith('/hisn_almuslim.json'))
                 return json(Object.fromEntries(AZKAR_CATEGORIES.map((c) => [c.mirrorName, { text: ['ذكر الله اختبار'] }])));
+
             if (url.pathname.endsWith('/ar.muyassar'))
                 return json({
                     data: {
@@ -95,11 +109,13 @@ describe.each(['node', 'worker'])('OpenAPI response contracts (%s)', (adapter) =
                         ayahs: Array.from({ length: 7 }, (_, i) => ({ numberInSurah: i + 1, text: 'تفسير اختبار' })),
                     },
                 });
+
             if (url.pathname.includes('/tafsirs/91/'))
                 return json({
                     tafsirs: Array.from({ length: 7 }, (_, i) => ({ resource_id: 91, verse_key: '1:' + (i + 1), text: 'تفسير اختبار' })),
                     pagination: { next_page: null },
                 });
+
             if (url.pathname.endsWith('/books/bukhari.json'))
                 return json(
                     Array.from({ length: HADITH_BOOKS.find((b) => b.id === 'bukhari')!.available }, (_, i) => ({
@@ -107,6 +123,7 @@ describe.each(['node', 'worker'])('OpenAPI response contracts (%s)', (adapter) =
                         arab: 'حديث اختبار',
                     })),
                 );
+
             if (/\/timings(?:ByCity)?\//.test(url.pathname))
                 return json({
                     data: {
@@ -120,6 +137,7 @@ describe.each(['node', 'worker'])('OpenAPI response contracts (%s)', (adapter) =
                         },
                     },
                 });
+
             if (/\/(gToH|hToG)\//.test(url.pathname))
                 return json({
                     data: {
@@ -134,7 +152,9 @@ describe.each(['node', 'worker'])('OpenAPI response contracts (%s)', (adapter) =
                         gregorian: { date: '04-10-2026', day: '04', month: { number: 10, en: 'October' }, year: '2026' },
                     },
                 });
+
             if (url.pathname.includes('/qibla/')) return json({ data: { latitude: 24.7136, longitude: 46.6753, direction: 243.8 } });
+
             throw new Error('Unexpected fixture request: ' + url.hostname + url.pathname);
         });
         app = await contractApp(adapter);
@@ -151,6 +171,7 @@ describe.each(['node', 'worker'])('OpenAPI response contracts (%s)', (adapter) =
             .filter((r) => (Array.isArray(r.method) ? r.method : [r.method]).includes('GET'))
             .map((r) => r.url.replace(/:([A-Za-z]+)/g, '{$1}'));
         expect(new Set([...registered, '/', '/health', '/ready', '/metrics'])).toEqual(new Set(Object.keys(spec.paths)));
+
         const ids = Object.values(spec.paths).map((p) => p.get.operationId);
         expect(new Set(ids).size).toBe(ids.length);
         expect(spec.openapi).toBe('3.1.0');
@@ -159,10 +180,14 @@ describe.each(['node', 'worker'])('OpenAPI response contracts (%s)', (adapter) =
     it('resolves all internal references and compiles each content schema', () => {
         function walk(value: unknown): void {
             if (!value || typeof value !== 'object') return;
+
             if ('$ref' in value) expect(dereference(value as Schema)).toBeDefined();
+
             for (const child of Object.values(value)) walk(child);
         }
+
         walk(spec);
+
         for (const name of Object.keys(spec.components.schemas))
             expect(() => ajv.compile({ $ref: '#/components/schemas/' + name, components: spec.components })).not.toThrow();
     });
@@ -239,6 +264,7 @@ describe.each(['node', 'worker'])('OpenAPI response contracts (%s)', (adapter) =
     it('returns the documented 503 body when all Quran text sources fail', async () => {
         clearCache();
         vi.mocked(fetch).mockRejectedValue(new Error('offline'));
+
         const response = await app.inject('/ayat');
         expect(response.statusCode).toBe(503);
         validateResponse('/ayat', 503, response.json());
@@ -247,9 +273,12 @@ describe.each(['node', 'worker'])('OpenAPI response contracts (%s)', (adapter) =
 
     it('returns the same error contract for rate-limited requests', async () => {
         vi.stubEnv('RATE_LIMIT_MAX', '1');
+
         const limited = await contractApp(adapter);
+
         try {
             await limited.inject('/health');
+
             const response = await limited.inject('/health');
             expect(response.statusCode).toBe(429);
             validateResponse('/health', 429, response.json());

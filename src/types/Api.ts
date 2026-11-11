@@ -5,6 +5,7 @@
  */
 
 export type ApiFunction<T> = () => Promise<T[]>;
+
 export interface Mp3QuranMoshaf {
     id: number;
     name: string;
@@ -13,24 +14,30 @@ export interface Mp3QuranMoshaf {
     moshaf_type: number;
     surah_list: string;
 }
+
 export interface Mp3QuranRecitersResponse {
     reciters: { id: number; name: string; date?: string; moshaf: Mp3QuranMoshaf[] }[];
 }
+
 export interface Mp3QuranSurahResponse {
     suwar: { id: number; name: string; makkia: number }[];
 }
+
 export interface AlQuranSurahResponse {
     data: { number: number; name: string; revelationType: string }[];
 }
+
 export interface QuranComChaptersResponse {
     chapters: { id: number; name_arabic: string; revelation_place: string }[];
 }
+
 export interface AlQuranAyatResponse {
     data: {
         edition: { identifier: string; type: string };
         surahs: { number: number; name: string; ayahs: { number: number; text: string; numberInSurah: number }[] }[];
     };
 }
+
 export interface AlAdhanTimingsResponse {
     data: {
         timings: Record<string, string>;
@@ -38,6 +45,7 @@ export interface AlAdhanTimingsResponse {
         meta: { latitude: number; longitude: number; timezone: string; method: { id: number; name: string } };
     };
 }
+
 export interface AlAdhanHijriResponse {
     data: {
         hijri: {
@@ -51,6 +59,7 @@ export interface AlAdhanHijriResponse {
         gregorian: { date: string; day: string; month: { number: number; en: string }; year: string };
     };
 }
+
 export interface AlAdhanQiblaResponse {
     data: { latitude: number; longitude: number; direction: number };
 }

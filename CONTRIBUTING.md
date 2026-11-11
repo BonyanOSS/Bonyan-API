@@ -19,6 +19,8 @@ pnpm test
 
 Use `pnpm lint` only when you intentionally want ESLint and Prettier to apply fixes.
 
+Keep related declarations together. Leave a blank line between a control-flow block and neighboring statements.
+
 ## Pull Requests
 
 - Keep changes focused.
