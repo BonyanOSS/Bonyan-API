@@ -53,13 +53,19 @@ describe('native Worker HTTP adapter', () => {
         expect((await request('/surah/')).status).toBe((await node.inject('/surah/')).statusCode);
     });
 
-    it('preserves repeated query parameters instead of silently selecting a value', async () => {
-        const path = '/qibla?latitude=24&latitude=25&longitude=46';
-        const expected = await node.inject(path);
-        const response = await request(path);
-        expect(response.status).toBe(expected.statusCode);
-        expect(await response.json()).toMatchObject({ message: expected.json().message });
-    });
+    it.each(['/qibla?latitude=24&latitude=25&longitude=46', '/prayer/times?date=01-01-2026&date=02-01-2026', '/surah/search?name=one&name=two'])(
+        'rejects repeated query parameters on both runtimes for %s',
+        async (path) => {
+            const nodeResponse = await node.inject(path);
+            const response = await request(path);
+            const expected = { success: false, error: { code: 'BAD_REQUEST' } };
+
+            expect(nodeResponse.statusCode).toBe(400);
+            expect(nodeResponse.json()).toMatchObject(expected);
+            expect(response.status).toBe(400);
+            expect(await response.json()).toMatchObject(expected);
+        },
+    );
 
     it('returns HEAD headers with an empty response body', async () => {
         const response = await request('/health', { method: 'HEAD' });
@@ -73,7 +79,8 @@ describe('native Worker HTTP adapter', () => {
         const path = '/qibla?longitude=46&' + Array.from({ length: 2000 }, () => 'latitude=24').join('&');
         const expected = await node.inject(path);
         const response = await request(path);
-        expect(response.status).toBe(expected.statusCode);
+        expect(expected.statusCode).toBe(400);
+        expect(response.status).toBe(400);
         expect(await response.json()).toMatchObject({ message: expected.json().message });
     });
 
