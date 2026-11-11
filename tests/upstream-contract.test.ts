@@ -36,6 +36,7 @@ describe('Upstream contracts and failover', () => {
                 data: SURAH_METADATA.map((s) => ({ number: s.id, name: 'سورة ' + s.name, revelationType: s.makkia ? 'Meccan' : 'Medinan' })),
             }),
         );
+
         const result = await surahApis[1]!();
         expect(result).toHaveLength(114);
         expect(result[0]).toEqual({ id: 1, name: 'الفاتحة', makkia: true, apiName: 'alquran.cloud' });
@@ -49,6 +50,7 @@ describe('Upstream contracts and failover', () => {
 
     it('sorts Quran mirror verses and computes absolute IDs from chapter references', async () => {
         vi.mocked(fetch).mockResolvedValue(response({ quran: verses().reverse() }));
+
         const result = await ayatApis[1]!();
         expect(result[0]?.name).toBe('الفاتحة');
         expect(result[1]?.ayat[0]?.number).toBe(8);
@@ -70,8 +72,10 @@ describe('Upstream contracts and failover', () => {
         vi.mocked(fetch).mockImplementation(async (input) => {
             if (String(input).includes('quran.com'))
                 return response({ verses: verses().map((v) => ({ verse_key: v.chapter + ':' + v.verse, text_uthmani: v.text })) });
+
             return response({ data: { surahs: [] }, quran: [] });
         });
+
         const result = await getAyatContent();
         expect(result.surahs).toHaveLength(114);
         expect(result.surahs[0]?.apiName).toBe('quran.com');
@@ -79,6 +83,7 @@ describe('Upstream contracts and failover', () => {
 
     it('preserves all reciter IDs when the primary catalogue is unavailable', async () => {
         vi.mocked(fetch).mockRejectedValue(new Error('offline'));
+
         const rows = await runWithFallback(reciterApis);
         expect(rows).toHaveLength(241);
         expect(rows.find((r) => r.id === 123)?.name).toBe('مشاري العفاسي');
@@ -98,10 +103,14 @@ describe('Upstream contracts and failover', () => {
         const requests: string[] = [];
         vi.mocked(fetch).mockImplementation(async (input, init) => {
             requests.push(String(input));
+
             if (String(input).includes('mp3quran.net')) return new Response(null, { status: 503 });
+
             if (init?.method === 'HEAD') return new Response(null, { headers: { 'content-type': 'audio/mpeg' } });
+
             return response({ audio_file: { chapter_id: 1, audio_url: 'https://download.quranicaudio.com/verified-test.mp3' } });
         });
+
         const result = await resolveReciterAudio(reciter, 1);
         expect(result).toMatchObject({ reciter: reciter.name, moshafId: 123, rewayaId: 1, apiName: 'quran.com' });
         expect(requests.some((r) => r.endsWith('/chapter_recitations/7/1'))).toBe(true);
@@ -123,6 +132,7 @@ describe('Upstream contracts and failover', () => {
                 expect(init.redirect).toBe('manual');
                 return new Response(null, { status: 302, headers: { location: 'https://unapproved.example/audio.mp3' } });
             }
+
             return response({ audio_file: { chapter_id: 1, audio_url: 'https://download.quranicaudio.com/test.mp3' } });
         });
         await expect(apis[0]!()).rejects.toThrow('Audio file unavailable');
@@ -160,6 +170,7 @@ describe('Upstream contracts and failover', () => {
 
     it('maps Hisn mirror text into all canonical category names without invented counts', async () => {
         vi.mocked(fetch).mockResolvedValue(response(Object.fromEntries(AZKAR_CATEGORIES.map((c) => [c.mirrorName, { text: ['ذكر اختبار'] }]))));
+
         const categories = await azkarApis[0]!();
         expect(categories).toHaveLength(132);
         expect(categories.every((c) => c.items[0]?.text === 'ذكر اختبار' && !Object.hasOwn(c.items[0]!, 'count'))).toBe(true);
@@ -169,8 +180,10 @@ describe('Upstream contracts and failover', () => {
     it('fails over to the same pinned Hisn corpus within the Workers subrequest budget', async () => {
         vi.mocked(fetch).mockImplementation(async (input) => {
             if (String(input).includes('cdn.jsdelivr.net')) return new Response(null, { status: 503 });
+
             return response(Object.fromEntries(AZKAR_CATEGORIES.map((c) => [c.mirrorName, { text: ['ذكر اختبار'] }])));
         });
+
         const categories = await runWithFallback(azkarApis);
         expect(categories).toHaveLength(132);
         expect(categories[0]?.items[0]).toEqual({ id: 1, text: 'ذكر اختبار' });
@@ -184,8 +197,10 @@ describe('Upstream contracts and failover', () => {
         const rows = Array.from({ length: meta.available }, (_, i) => ({ number: (i + 1) * 2, arab: 'حديث اختبار' }));
         vi.mocked(fetch).mockImplementation(async (input) => {
             if (String(input).includes('cdn.jsdelivr.net')) return new Response(null, { status: 404 });
+
             return response(rows);
         });
+
         const result = await runWithFallback(buildHadithApis('bukhari'));
         expect(result).toHaveLength(meta.available);
         expect(result[0]).toMatchObject({ number: 2, book: meta.name, apiName: 'raw.githubusercontent.com/gadingnst/hadith-api' });
@@ -214,6 +229,7 @@ describe('Upstream contracts and failover', () => {
     it('declares the offline calendar and converts back to the same Gregorian day', async () => {
         const result = await buildHijriApis('gToH', '04-10-2026')[1]!();
         expect(result).toMatchObject({ apiName: 'local', calendar: 'islamic-umalqura' });
+
         const reverse = await buildHijriApis('hToG', result.hijri.date)[1]!();
         expect(reverse.gregorian.date).toBe('04-10-2026');
     });
@@ -244,6 +260,7 @@ describe('Upstream contracts and failover', () => {
 
     it('keeps exact Qibla coordinates for nearby cache keys and rejects bad upstream bearings', async () => {
         vi.mocked(fetch).mockResolvedValue(response({ data: { latitude: 24.713601, longitude: 46.6753, direction: null } }));
+
         const first = await getQibla(24.713601, 46.6753);
         const second = await getQibla(24.713602, 46.6753);
         expect(first.apiName).toBe('local');
@@ -256,6 +273,7 @@ describe('Upstream contracts and failover', () => {
     it('bounds response body parsing, not only the time until headers arrive', async () => {
         vi.mocked(fetch).mockResolvedValue({ ok: true, json: () => new Promise(() => {}) } as Response);
         await expect(fetchJson('https://example.com', 20)).rejects.toThrow('timed out');
+
         const [, init] = vi.mocked(fetch).mock.calls[0]!;
         expect(init?.signal?.aborted).toBe(true);
     });

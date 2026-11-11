@@ -32,6 +32,7 @@ function map(json: AlAdhanHijriResponse): HijriDate {
         apiName: 'aladhan.com',
     };
 }
+
 function localDate(date: Date): HijriDate {
     const parts = (locale: string, calendar: string) =>
         Object.fromEntries(
@@ -68,45 +69,59 @@ function localDate(date: Date): HijriDate {
         apiName: 'local',
     };
 }
+
 function localGregorian(date: string): HijriDate {
     if (!validGregorianDate(date)) throw new Error('Invalid Gregorian date');
+
     const [day, month, year] = date.split('-').map(Number) as [number, number, number];
     return localDate(new Date(Date.UTC(year, month - 1, day)));
 }
+
 function localHijri(date: string): HijriDate {
     const [day, month, year] = date.split('-').map(Number) as [number, number, number];
     const target = year * 10000 + month * 100 + day;
     let low = Date.UTC(622, 0, 1) / 86400000,
         high = Date.UTC(3000, 0, 1) / 86400000;
+
     while (low <= high) {
         const mid = Math.floor((low + high) / 2);
         const result = localDate(new Date(mid * 86400000));
         const [d, m, y] = result.hijri.date.split('-').map(Number) as [number, number, number];
         const current = y * 10000 + m * 100 + d;
+
         if (current === target) return result;
+
         if (current < target) low = mid + 1;
         else high = mid - 1;
     }
+
     throw new Error('Hijri date does not exist in Umm al-Qura calendar');
 }
+
 export function buildHijriApis(path: 'gToH' | 'hToG', date: string): (() => Promise<HijriDate>)[] {
     return [
         async () => {
             const result = map(await fetchJson<AlAdhanHijriResponse>('https://api.aladhan.com/v1/' + path + '/' + date + '?calendarMethod=UAQ'));
+
             if (!validGregorianDate(result.gregorian.date) || (path === 'gToH' ? result.gregorian.date : result.hijri.date) !== date)
                 throw new Error('Wrong calendar conversion date');
+
             const canonical = path === 'gToH' ? localGregorian(date) : localHijri(date);
+
             if (result.calendar !== 'UAQ' || result.hijri.date !== canonical.hijri.date || result.gregorian.date !== canonical.gregorian.date) {
                 throw new Error('Unexpected Umm al-Qura conversion');
             }
+
             return { ...canonical, apiName: 'aladhan.com' };
         },
         async () => (path === 'gToH' ? localGregorian(date) : localHijri(date)),
     ];
 }
+
 export async function gregorianToHijri(date: string): Promise<HijriDate> {
     return memoize('hijri:g2h:' + date, () => runWithFallback(buildHijriApis('gToH', date)), { ttlMs: 1000 * 60 * 60 * 24 * 7 });
 }
+
 export async function hijriToGregorian(date: string): Promise<HijriDate> {
     return memoize('hijri:h2g:' + date, () => runWithFallback(buildHijriApis('hToG', date)), { ttlMs: 1000 * 60 * 60 * 24 * 7 });
 }

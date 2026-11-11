@@ -18,6 +18,7 @@ function todayDDMMYYYY(): string {
 
 export async function convertGregorianToHijri(req: HttpRequest<{ Querystring: { date?: string } }>, reply: HttpReply) {
     const date = req.query.date?.trim() || todayDDMMYYYY();
+
     if (!validGregorianDate(date)) return fail(reply, 400, 'Date must be a valid date in DD-MM-YYYY format');
 
     try {
@@ -29,9 +30,13 @@ export async function convertGregorianToHijri(req: HttpRequest<{ Querystring: { 
 
 export async function convertHijriToGregorian(req: HttpRequest<{ Querystring: { date?: string } }>, reply: HttpReply) {
     const date = req.query.date?.trim();
+
     if (!date) return fail(reply, 400, 'Query parameter "date" (DD-MM-YYYY) is required');
+
     if (!DATE_RE.test(date)) return fail(reply, 400, 'Date must be in DD-MM-YYYY format');
+
     const [day, month, year] = date.split('-').map(Number) as [number, number, number];
+
     if (day < 1 || day > 30 || month < 1 || month > 12 || year < 1 || year > 2400) return fail(reply, 400, 'Invalid Hijri date');
 
     try {

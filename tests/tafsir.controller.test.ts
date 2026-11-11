@@ -23,6 +23,7 @@ describe('Tafsir Controller', () => {
     it('lists supported editions', async () => {
         const res = await app.inject({ method: 'GET', url: '/tafsir' });
         expect(res.statusCode).toBe(200);
+
         const body = res.json();
         expect(Array.isArray(body.data)).toBe(true);
         expect(body.data.length).toBeGreaterThan(0);

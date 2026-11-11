@@ -13,11 +13,15 @@ import { SURAH_METADATA } from './surah.metadata.js';
 
 function canonical(rows: { id: number; name: string }[], apiName: SurahApiSource): SurahItem[] {
     if (rows.length !== 114 || new Set(rows.map((r) => r.id)).size !== 114) throw new Error('Incomplete surah catalogue');
+
     for (const row of rows) {
         const id = positiveInteger(row.id);
+
         if (id > 114) throw new Error('Invalid surah id');
+
         requiredText(row.name);
     }
+
     return SURAH_METADATA.map(({ id, name, makkia }) => ({ id, name, makkia, apiName }));
 }
 

@@ -46,7 +46,10 @@ export function unavailable(reply: HttpReply, err: unknown): HttpReply {
 
 function codeForStatus(status: number): ErrorCode {
     if (status === 404) return 'NOT_FOUND';
+
     if (status === 429) return 'RATE_LIMITED';
+
     if (status >= 400 && status < 500) return 'BAD_REQUEST';
+
     return 'INTERNAL_SERVER_ERROR';
 }

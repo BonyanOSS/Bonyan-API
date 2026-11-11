@@ -26,6 +26,7 @@ function localQiblaDirection(lat: number, lng: number): number {
 
 async function fromAlAdhan(lat: number, lng: number): Promise<QiblaInfo> {
     const json = await fetchJson<AlAdhanQiblaResponse>(`https://api.aladhan.com/v1/qibla/${lat}/${lng}`);
+
     if (
         !Number.isFinite(json.data.direction) ||
         json.data.direction < 0 ||
@@ -35,6 +36,7 @@ async function fromAlAdhan(lat: number, lng: number): Promise<QiblaInfo> {
     ) {
         throw new Error('Invalid Qibla response');
     }
+
     return {
         latitude: json.data.latitude,
         longitude: json.data.longitude,
@@ -49,6 +51,7 @@ export function buildQiblaApis(lat: number, lng: number): (() => Promise<QiblaIn
 
 export async function getQibla(lat: number, lng: number): Promise<QiblaInfo> {
     if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) throw new Error('Invalid coordinates');
+
     const cacheKey = `qibla:${lat}:${lng}`;
     return memoize(cacheKey, () => runWithFallback(buildQiblaApis(lat, lng)), { ttlMs: 1000 * 60 * 60 * 24 * 30 });
 }

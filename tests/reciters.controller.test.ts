@@ -14,6 +14,7 @@ describe('Reciters Controller', () => {
     beforeAll(async () => {
         vi.mocked(fetch).mockImplementation(async (_url, init) => {
             if (init?.method === 'HEAD') return new Response(null, { headers: { 'content-type': 'audio/mpeg' } });
+
             throw new Error('Primary source unavailable');
         });
         await app.register(recitersRoutes);
@@ -31,6 +32,7 @@ describe('Reciters Controller', () => {
         });
 
         expect(res.statusCode).toBe(200);
+
         const body = res.json();
         expect(body.data).toBeDefined();
     });
@@ -42,6 +44,7 @@ describe('Reciters Controller', () => {
         });
 
         expect(res.statusCode).toBe(200);
+
         const body = res.json();
         expect(body.data).toBeDefined();
     });
@@ -62,6 +65,7 @@ describe('Reciters Controller', () => {
         });
 
         expect(res.statusCode).toBe(200);
+
         const body = res.json();
         expect(body.data).toBeDefined();
     });
@@ -82,6 +86,7 @@ describe('Reciters Controller', () => {
         });
 
         expect(res.statusCode).toBe(200);
+
         const body = res.json();
         expect(body.data).toBeDefined();
     });

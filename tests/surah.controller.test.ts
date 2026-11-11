@@ -27,6 +27,7 @@ describe('Surah Controller', () => {
         });
 
         expect(res.statusCode).toBe(200);
+
         const body = res.json();
         expect(body.data).toBeDefined();
     });
@@ -38,6 +39,7 @@ describe('Surah Controller', () => {
         });
 
         expect(res.statusCode).toBe(200);
+
         const body = res.json();
         expect(body.data).toBeDefined();
     });

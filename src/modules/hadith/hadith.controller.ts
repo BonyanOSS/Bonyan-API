@@ -20,7 +20,9 @@ export async function getHadithBooks(_req: HttpRequest, reply: HttpReply) {
 
 export async function getHadithBook(req: HttpRequest<{ Params: { book: string }; Querystring: { from?: string; to?: string } }>, reply: HttpReply) {
     const bookId = req.params.book.trim();
+
     if (!bookId) return fail(reply, 400, 'Book id is required');
+
     if (!isSupportedBook(bookId)) return fail(reply, 404, 'Book not found');
 
     const from = req.query.from === undefined ? 1 : parseInteger(req.query.from);
@@ -29,6 +31,7 @@ export async function getHadithBook(req: HttpRequest<{ Params: { book: string };
     if (Number.isNaN(from) || Number.isNaN(to) || from < 1 || to < from) {
         return fail(reply, 400, 'Invalid range. "from" and "to" must be positive integers with from <= to');
     }
+
     if (to - from + 1 > 300) return fail(reply, 400, 'Range cannot exceed 300 hadith numbers per request');
 
     try {
@@ -42,13 +45,18 @@ export async function getHadithBook(req: HttpRequest<{ Params: { book: string };
 export async function getHadithByNumber(req: HttpRequest<{ Params: { book: string; number: string } }>, reply: HttpReply) {
     const bookId = req.params.book.trim();
     const number = parseInteger(req.params.number);
+
     if (!bookId) return fail(reply, 400, 'Book id is required');
+
     if (Number.isNaN(number) || number < 1) return fail(reply, 400, 'Hadith number must be a positive integer');
+
     if (!isSupportedBook(bookId)) return fail(reply, 404, 'Book not found');
 
     try {
         const hadith = await getHadith(bookId, number);
+
         if (!hadith) return fail(reply, 404, 'Hadith not found');
+
         return ok(reply, hadith);
     } catch (err) {
         return unavailable(reply, err);
@@ -58,9 +66,11 @@ export async function getHadithByNumber(req: HttpRequest<{ Params: { book: strin
 export async function getRandomHadith(req: HttpRequest<{ Querystring: { book?: string } }>, reply: HttpReply) {
     try {
         const books = await listBooks();
+
         if (books.length === 0) return fail(reply, 503, 'No hadith books available');
 
         const targetBook = req.query.book ? books.find((b) => b.id === req.query.book) : books[Math.floor(Math.random() * books.length)];
+
         if (!targetBook) return fail(reply, 404, 'Book not found');
 
         const hadith = await getRandomHadithItem(targetBook.id);

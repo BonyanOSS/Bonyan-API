@@ -26,10 +26,13 @@ export const azkarApis: ApiFunction<AzkarCategory>[] = sources.map(({ url, apiNa
     const json = await fetchJson<Record<string, { text: string[] }>>(url, 12000);
     return AZKAR_CATEGORIES.map((meta) => {
         const texts = json[meta.mirrorName]?.text;
+
         if (!Array.isArray(texts) || !texts.length) throw new Error('Incomplete Hisn al-Muslim mirror');
+
         return { category: meta.name, items: texts.map((text, i) => ({ id: i + 1, text: requiredText(text) })), apiName };
     });
 });
+
 export async function getAzkarContent(): Promise<{ categories: AzkarCategory[] }> {
     return { categories: await memoize('azkar:all', () => runWithFallback(azkarApis), { ttlMs: 1000 * 60 * 60 * 24 }) };
 }

@@ -43,6 +43,7 @@ export function createWorkerApp() {
     };
     registerApiRoutes(router);
     routes.sort((a, b) => a.segments.filter((p) => p.startsWith(':')).length - b.segments.filter((p) => p.startsWith(':')).length);
+
     const catalogue = routes.flatMap(({ path }) => [
         { method: 'GET', url: path },
         { method: 'HEAD', url: path },
@@ -61,6 +62,7 @@ export function createWorkerApp() {
                     .map((s) => s.trim())
                     .includes(origin ?? '');
             headers.set('vary', 'Origin');
+
             if (origin && allowed) headers.set('access-control-allow-origin', origin);
 
             const finish = (response: Response): Response => {
@@ -73,12 +75,16 @@ export function createWorkerApp() {
                     fail(reply, 400, 'Invalid Preflight Request');
                     return finish(reply.response!);
                 }
+
                 headers.set('access-control-allow-methods', 'GET,HEAD,POST');
+
                 const requestedHeaders = request.headers.get('access-control-request-headers');
+
                 if (requestedHeaders) {
                     headers.set('access-control-allow-headers', requestedHeaders);
                     headers.append('vary', 'Access-Control-Request-Headers');
                 }
+
                 return finish(new Response(null, { status: 204 }));
             }
 
@@ -88,16 +94,21 @@ export function createWorkerApp() {
             const now = Date.now();
             const clientKey = request.headers.get('cf-connecting-ip') ?? 'unknown';
             let client = clients.get(clientKey);
+
             if (!client || client.expiresAt <= now) {
                 client = { count: 0, expiresAt: now + windowMs };
                 clients.set(clientKey, client);
             }
+
             client.count++;
+
             const reset = Math.ceil((client.expiresAt - now) / 1000);
             headers.set('x-ratelimit-limit', String(max));
             headers.set('x-ratelimit-remaining', String(Math.max(0, max - client.count)));
             headers.set('x-ratelimit-reset', String(reset));
+
             if (clients.size > 10_000) clients.delete(clients.keys().next().value!);
+
             if (client.count > max) {
                 headers.set('retry-after', String(reset));
                 fail(reply, 429, 'Rate limit exceeded, retry in ' + reset + ' seconds', 'RATE_LIMITED');
@@ -106,6 +117,7 @@ export function createWorkerApp() {
 
             try {
                 const url = new URL(request.url);
+
                 if (request.method === 'GET' || request.method === 'HEAD') {
                     if (url.pathname === '/')
                         reply.send({ name: 'Bonyan-API', description: 'Quran & Azkar API with multi-source fallback', routes: catalogue });
@@ -116,36 +128,44 @@ export function createWorkerApp() {
                         return finish(new Response(renderMetrics(getCacheStats()), { headers: { 'content-type': 'text/plain; version=0.0.4' } }));
                     else {
                         let segments: string[];
+
                         try {
                             segments = url.pathname.split('/').map(decodeURIComponent);
                         } catch {
                             fail(reply, 400, 'Malformed URL');
                             return finish(reply.response!);
                         }
+
                         const route = routes.find(
                             (r) =>
                                 r.segments.length === segments.length && r.segments.every((part, i) => part.startsWith(':') || part === segments[i]),
                         );
+
                         if (route) {
                             const params = Object.fromEntries(
                                 route.segments.flatMap((part, i) => (part.startsWith(':') ? [[part.slice(1), segments[i]!]] : [])),
                             );
                             const query: Record<string, string | string[]> = Object.create(null);
+
                             for (const [key, value] of url.searchParams) {
                                 const previous = query[key];
+
                                 if (previous === undefined) query[key] = value;
                                 else if (Array.isArray(previous)) previous.push(value);
                                 else query[key] = [previous, value];
                             }
+
                             await route.handler({ params, query } satisfies HttpRequest, reply);
                         }
                     }
                 }
+
                 if (!reply.response) fail(reply, 404, `Route ${request.method} ${url.pathname}${url.search} not found`, 'NOT_FOUND');
             } catch (error) {
                 console.error('Request failed', error);
                 fail(reply, 500, 'Internal server error', 'INTERNAL_SERVER_ERROR');
             }
+
             return finish(reply.response!);
         },
     };
@@ -153,7 +173,9 @@ export function createWorkerApp() {
 
 function parseWindow(value = '1 minute'): number {
     const match = /^(\d+(?:\.\d+)?)\s*(ms|milliseconds?|s|seconds?|m|minutes?|h|hours?|d|days?)$/i.exec(value.trim());
+
     if (!match) return 60_000;
+
     const unit = match[2]!.toLowerCase();
     const multiplier =
         unit.startsWith('ms') || unit.startsWith('millisecond')

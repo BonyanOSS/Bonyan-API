@@ -39,6 +39,7 @@ export async function buildApp(options: FastifyServerOptions = {}) {
 
     app.addHook('onRoute', (routeOptions) => {
         if (['/', '/health', '/ready', '/metrics'].includes(routeOptions.url)) return;
+
         allRoutes.push({
             method: routeOptions.method,
             url: routeOptions.url,
@@ -64,10 +65,13 @@ export async function buildApp(options: FastifyServerOptions = {}) {
 
     app.setErrorHandler((err: Error & { statusCode?: number }, _req, reply) => {
         app.log.error(err);
+
         const status = err.statusCode ?? 500;
+
         if (status >= 400 && status < 500) {
             return fail(reply, status, err.message);
         }
+
         return fail(reply, 500, 'Internal server error', 'INTERNAL_SERVER_ERROR');
     });
 
@@ -78,6 +82,7 @@ export async function buildApp(options: FastifyServerOptions = {}) {
 
 function parseCorsOrigin(value: string | undefined): boolean | string[] {
     if (!value || value.trim() === '*' || value.trim().toLowerCase() === 'true') return true;
+
     return value
         .split(',')
         .map((origin) => origin.trim())

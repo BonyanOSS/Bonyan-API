@@ -20,17 +20,23 @@ interface Check {
     name: string;
     load: () => Promise<unknown>;
 }
+
 const checks: Check[] = [];
 const results: { name: string; ok: boolean; durationMs: number; items?: number; apiName?: string; error?: string }[] = [];
+
 function add(name: string, loaders: (() => Promise<unknown>)[]): void {
     loaders.forEach((load, index) => checks.push({ name: name + ':' + (index + 1), load }));
 }
+
 add('surah', surahApis);
 add('ayat', ayatApis);
 add('reciters', reciterApis);
 add('azkar', azkarApis);
+
 for (const edition of listEditions()) add('tafsir:' + edition.id, buildTafsirApis(edition.id as 'muyassar' | 'saadi', 1, 2));
+
 for (const book of await listBooks()) add('hadith:' + book.id, buildHadithApis(book.id));
+
 const now = new Date();
 const date = [now.getUTCDate(), now.getUTCMonth() + 1, now.getUTCFullYear()]
     .map((n, i) => (i < 2 ? String(n).padStart(2, '0') : String(n)))
@@ -40,7 +46,9 @@ add('prayer:city', buildApis({ date, city: 'Mecca', country: 'SA', method: 4, ti
 add('hijri:gToH', buildHijriApis('gToH', date));
 add('hijri:hToG', buildHijriApis('hToG', '23-04-1448'));
 add('qibla', buildQiblaApis(24.7136, 46.6753));
+
 const reciters = await reciterApis[1]!();
+
 for (const id of [1, 4, 31, 51, 54, 89, 106, 112, 118, 123]) {
     const reciter = reciters.find((r) => r.id === id)!;
     add('audio:' + id, buildReciterAudioApis(reciter, 1));
@@ -53,9 +61,12 @@ await Promise.all(
         while (pending.length) {
             const check = pending.shift()!;
             const started = Date.now();
+
             try {
                 const value = await check.load();
+
                 if (value === undefined || value === null || (Array.isArray(value) && !value.length)) throw new Error('Empty result');
+
                 const first = Array.isArray(value) ? value[0] : value;
                 const result = {
                     name: check.name,
@@ -80,6 +91,7 @@ await Promise.all(
     }),
 );
 clearCache();
+
 const report = {
     checkedAt: new Date().toISOString(),
     checks: results.sort((a, b) => a.name.localeCompare(b.name)),
@@ -87,10 +99,15 @@ const report = {
     failed: results.filter((r) => !r.ok).length,
 };
 const outputIndex = process.argv.indexOf('--output');
+
 if (outputIndex >= 0) {
     const output = process.argv[outputIndex + 1];
+
     if (!output) throw new Error('--output requires a path');
+
     await writeFile(output, JSON.stringify(report, null, 2) + '\n');
 }
+
 console.log(JSON.stringify({ passed: report.passed, failed: report.failed }));
+
 if (report.failed) process.exitCode = 1;

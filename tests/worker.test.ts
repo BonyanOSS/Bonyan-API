@@ -34,6 +34,7 @@ describe('native Worker HTTP adapter', () => {
             const expected = await node.inject(path);
             const response = await request(path);
             expect(response.status).toBe(expected.statusCode);
+
             const body = await response.json();
             expect(body).toMatchObject({ success: false, message: expected.json().message, error: { code: expected.json().error.code } });
         },
@@ -53,13 +54,19 @@ describe('native Worker HTTP adapter', () => {
         expect((await request('/surah/')).status).toBe((await node.inject('/surah/')).statusCode);
     });
 
-    it('preserves repeated query parameters instead of silently selecting a value', async () => {
-        const path = '/qibla?latitude=24&latitude=25&longitude=46';
-        const expected = await node.inject(path);
-        const response = await request(path);
-        expect(response.status).toBe(expected.statusCode);
-        expect(await response.json()).toMatchObject({ message: expected.json().message });
-    });
+    it.each(['/qibla?latitude=24&latitude=25&longitude=46', '/prayer/times?date=01-01-2026&date=02-01-2026', '/surah/search?name=one&name=two'])(
+        'rejects repeated query parameters on both runtimes for %s',
+        async (path) => {
+            const nodeResponse = await node.inject(path);
+            const response = await request(path);
+            const expected = { success: false, error: { code: 'BAD_REQUEST' } };
+
+            expect(nodeResponse.statusCode).toBe(400);
+            expect(nodeResponse.json()).toMatchObject(expected);
+            expect(response.status).toBe(400);
+            expect(await response.json()).toMatchObject(expected);
+        },
+    );
 
     it('returns HEAD headers with an empty response body', async () => {
         const response = await request('/health', { method: 'HEAD' });
@@ -73,7 +80,8 @@ describe('native Worker HTTP adapter', () => {
         const path = '/qibla?longitude=46&' + Array.from({ length: 2000 }, () => 'latitude=24').join('&');
         const expected = await node.inject(path);
         const response = await request(path);
-        expect(response.status).toBe(expected.statusCode);
+        expect(expected.statusCode).toBe(400);
+        expect(response.status).toBe(400);
         expect(await response.json()).toMatchObject({ message: expected.json().message });
     });
 
@@ -84,6 +92,7 @@ describe('native Worker HTTP adapter', () => {
         expect(response.headers.get('access-control-allow-origin')).toBe(headers.origin);
         expect(response.headers.get('access-control-allow-headers')).toBe('x-test');
         expect(response.headers.get('vary')).toContain('Access-Control-Request-Headers');
+
         const denied = await request('/health', { headers: { origin: 'https://other.example' } }, { CORS_ORIGIN: headers.origin });
         expect(denied.headers.has('access-control-allow-origin')).toBe(false);
         expect((await request('/health', { method: 'OPTIONS' })).status).toBe(400);
@@ -91,9 +100,11 @@ describe('native Worker HTTP adapter', () => {
 
     it('limits each client IP and resets after the configured window', async () => {
         vi.useFakeTimers();
+
         const env = { RATE_LIMIT_MAX: '1', RATE_LIMIT_WINDOW: '2 seconds' };
         const init = { headers: { 'cf-connecting-ip': '192.0.2.1' } };
         expect((await request('/health', init, env)).status).toBe(200);
+
         const limited = await request('/health', init, env);
         expect(limited.status).toBe(429);
         expect(limited.headers.get('retry-after')).toBe('2');

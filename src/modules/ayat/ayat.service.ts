@@ -16,22 +16,32 @@ interface Verse {
     verse: number;
     text: string;
 }
+
 function normalize(verses: Verse[], apiName: AyatApiSource): SurahWithAyaItem[] {
     if (verses.length !== 6236) throw new Error('Incomplete Quran text');
+
     const grouped = new Map<number, Map<number, string>>();
+
     for (const row of verses) {
         const chapter = positiveInteger(row.chapter);
         const verse = positiveInteger(row.verse);
         const meta = SURAH_METADATA[chapter - 1];
+
         if (!meta || verse > meta.ayahCount) throw new Error('Invalid Quran verse reference');
+
         const ayat = grouped.get(chapter) ?? new Map<number, string>();
+
         if (ayat.has(verse)) throw new Error('Duplicate Quran verse');
+
         ayat.set(verse, requiredText(row.text));
         grouped.set(chapter, ayat);
     }
+
     return SURAH_METADATA.map((meta) => {
         const verses = grouped.get(meta.id);
+
         if (verses?.size !== meta.ayahCount) throw new Error('Incomplete Quran surah');
+
         return {
             number: meta.id,
             name: meta.name,
@@ -46,7 +56,9 @@ function normalize(verses: Verse[], apiName: AyatApiSource): SurahWithAyaItem[] 
 export const ayatApis: ApiFunction<SurahWithAyaItem>[] = [
     async () => {
         const json = await fetchJson<AlQuranAyatResponse>('https://api.alquran.cloud/v1/quran/quran-uthmani', 20000);
+
         if (json.data.edition.type !== 'quran' || json.data.edition.identifier !== 'quran-uthmani') throw new Error('Unexpected Quran edition');
+
         return normalize(
             json.data.surahs.flatMap((s) => s.ayahs.map((a) => ({ chapter: s.number, verse: a.numberInSurah, text: a.text }))),
             'alquran.cloud',

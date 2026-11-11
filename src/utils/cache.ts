@@ -34,7 +34,9 @@ export async function memoize<T>(key: string, loader: () => Promise<T>, options:
     const now = Date.now();
 
     const cached = store.get(key) as CacheEntry<T> | undefined;
+
     if (cached && cached.expiresAt > now) return cached.value;
+
     if (cached && cached.staleUntil > now) {
         const task = refresh(key, loader, ttl, staleWhileRevalidateMs, maxEntries).catch(() => undefined);
         cacheContext.getStore()?.waitUntil(task);
@@ -42,6 +44,7 @@ export async function memoize<T>(key: string, loader: () => Promise<T>, options:
     }
 
     const existing = (cacheContext.getStore()?.inflight ?? inflight).get(key) as Promise<T> | undefined;
+
     if (existing) return existing;
 
     return refresh(key, loader, ttl, staleWhileRevalidateMs, maxEntries);
@@ -69,11 +72,13 @@ function refresh<T>(key: string, loader: () => Promise<T>, ttl: number, staleWhi
     const active = cacheContext.getStore()?.inflight ?? inflight;
     const startedGeneration = generation;
     const existing = active.get(key) as Promise<T> | undefined;
+
     if (existing) return existing;
 
     const task = Promise.resolve().then(async () => {
         try {
             const value = await loader();
+
             if (active.get(key) === task && startedGeneration === generation) {
                 store.set(key, {
                     value,
@@ -82,6 +87,7 @@ function refresh<T>(key: string, loader: () => Promise<T>, ttl: number, staleWhi
                 });
                 evictIfNeeded(maxEntries);
             }
+
             return value;
         } finally {
             if (active.get(key) === task) active.delete(key);
@@ -95,7 +101,9 @@ function refresh<T>(key: string, loader: () => Promise<T>, ttl: number, staleWhi
 function evictIfNeeded(maxEntries: number): void {
     while (store.size > maxEntries) {
         const oldestKey = store.keys().next().value as string | undefined;
+
         if (!oldestKey) break;
+
         store.delete(oldestKey);
     }
 }
