@@ -13,8 +13,8 @@ importers:
   .:
     dependencies:
       '@fastify/cors':
-        specifier: ^11.4.0
-        version: 11.4.0
+        specifier: ^11.4.1
+        version: 11.4.1
       '@fastify/rate-limit':
         specifier: ^11.2.2
         version: 11.2.2
@@ -22,8 +22,8 @@ importers:
         specifier: ^4.4.6
         version: 4.4.6
       dotenv:
-        specifier: ^18.0.9
-        version: 18.0.9
+        specifier: ^18.0.10
+        version: 18.0.10
       fastify:
         specifier: ^5.12.8
         version: 5.12.8
@@ -363,8 +363,8 @@ packages:
   '@fastify/ajv-compiler@4.0.7':
     resolution: {integrity: sha512-VP0yIfwlc1ohj733keYDqyHm1VWeP9VQxYomunhr90jkC4aNNibbkrRiaNgPgqj1ORxUenILR4qzA/ppYBNAtQ==}
 
-  '@fastify/cors@11.4.0':
-    resolution: {integrity: sha512-+P4+RIRx5I3rkC1QttZ9gqSJ3AHrsM4PrZF6bpgbElt86n7gOBiHL3J0H3moVSyfc+vvvNto+Ay1LmG7ZQ37pA==}
+  '@fastify/cors@11.4.1':
+    resolution: {integrity: sha512-WuPATGGyc3YzpOfumovBJ4xC2RPBBFyDFElwldFRBCgM2G27xH9DnXTho9+nc2Ho6gLD1hKTetdOntR+G38+7A==}
 
   '@fastify/deepmerge@3.2.4':
     resolution: {integrity: sha512-kc8GQq5gX9RRhw0rov3DMrN8wS8yRlxJRdDzsYwwdBV/wazuVgc/1K7CKL90tlvu3RlHan6Y0R0aE3nJtBz2eQ==}
@@ -925,8 +925,8 @@ packages:
     resolution: {integrity: sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ==}
     engines: {node: '>=8'}
 
-  dotenv@18.0.9:
-    resolution: {integrity: sha512-3fVOW4cB02R066PUSwn8O4TJyz9NckQl7F81blIbaq9jKBm2tSmOKky7ZHIXzGvkVPXCSn6jkpziBPZdGFs8Tw==}
+  dotenv@18.0.10:
+    resolution: {integrity: sha512-89FAA1xchzK2mxVWdr5F/0rldwiueXs6zJM86rO66EzekR1iBdiXRthyG+m5GvkJaFH3C2LESzamTkgndmLT2A==}
     engines: {node: '>=12'}
     hasBin: true
 
@@ -1815,7 +1815,7 @@ snapshots:
       ajv-formats: 3.0.1(ajv@8.20.0)
       fast-uri: 4.2.3
 
-  '@fastify/cors@11.4.0':
+  '@fastify/cors@11.4.1':
     dependencies:
       fastify-plugin: 6.0.1
       toad-cache: 3.7.4
@@ -2283,7 +2283,7 @@ snapshots:
 
   detect-libc@2.1.2: {}
 
-  dotenv@18.0.9: {}
+  dotenv@18.0.10: {}
 
   error-stack-parser-es@1.0.5: {}
 
